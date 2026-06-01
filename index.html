@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite App</title>
+    <script>
+      ;(() => {
+        const storageKey = 'vueuse-color-scheme'
+        const storedMode = localStorage.getItem(storageKey)
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const shouldUseDark =
+          storedMode === 'dark' || ((!storedMode || storedMode === 'auto') && prefersDark)
+
+        document.documentElement.classList.toggle('dark', shouldUseDark)
+        document.documentElement.style.colorScheme = shouldUseDark ? 'dark' : 'light'
+      })()
+    </script>
+    <style>
+      html,
+      body,
+      #app {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+
+      html.dark body {
+        background: #0a0a0a;
+        color: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
