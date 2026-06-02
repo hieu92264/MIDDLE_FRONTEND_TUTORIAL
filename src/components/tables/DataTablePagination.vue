@@ -1,8 +1,10 @@
 <script setup lang="ts" generic="TData">
 import type { Table } from '@tanstack/vue-table'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import { ref, watch } from 'vue'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -16,25 +18,51 @@ interface DataTablePaginationProps {
   pageSizeOptions?: number[]
 }
 
-withDefaults(defineProps<DataTablePaginationProps>(), {
+const props = withDefaults(defineProps<DataTablePaginationProps>(), {
   pageSizeOptions: () => [10, 20, 30, 40, 50],
 })
+
+const pageInput = ref('1')
+
+watch(
+  () => props.table.getState().pagination.pageIndex,
+  (pageIndex) => {
+    pageInput.value = String(pageIndex + 1)
+  },
+  { immediate: true },
+)
+
+const setPageSize = (value: unknown) => {
+  if (value === null || value === undefined) return
+
+  props.table.setPageSize(Number(value))
+}
+
+const jumpToPage = () => {
+  const pageCount = props.table.getPageCount()
+  const parsedPage = Number.parseInt(pageInput.value, 10)
+  const targetPage = Number.isNaN(parsedPage) ? 1 : parsedPage
+  const clampedPage = Math.min(Math.max(targetPage, 1), Math.max(pageCount, 1))
+
+  props.table.setPageIndex(clampedPage - 1)
+  pageInput.value = String(clampedPage)
+}
 </script>
 
 <template>
-  <div class="flex items-center justify-between px-2">
+  <div class="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex-1 text-sm text-muted-foreground">
-      <span v-if="table.getFilteredSelectedRowModel().rows.length > 0">
+      <span>
         {{ table.getFilteredSelectedRowModel().rows.length }} of
         {{ table.getFilteredRowModel().rows.length }} row(s) selected.
       </span>
     </div>
-    <div class="flex items-center space-x-6 lg:space-x-8">
+    <div class="flex flex-wrap items-center gap-3 lg:gap-6">
       <div class="flex items-center space-x-2">
         <p class="text-sm font-medium">Rows per page</p>
         <Select
           :model-value="`${table.getState().pagination.pageSize}`"
-          @update:model-value="(value) => table.setPageSize(Number(value))"
+          @update:model-value="setPageSize"
         >
           <SelectTrigger class="h-8 w-[70px]">
             <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
@@ -45,6 +73,19 @@ withDefaults(defineProps<DataTablePaginationProps>(), {
             </SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div class="flex items-center space-x-2">
+        <p class="text-sm font-medium">Go to</p>
+        <Input
+          v-model="pageInput"
+          type="number"
+          min="1"
+          :max="table.getPageCount()"
+          class="h-8 w-16"
+          @keyup.enter="jumpToPage"
+          @blur="jumpToPage"
+        />
+        <Button variant="outline" class="h-8 px-3" @click="jumpToPage">Go</Button>
       </div>
       <div class="flex w-[100px] items-center justify-center text-sm font-medium">
         Page {{ table.getState().pagination.pageIndex + 1 }} of

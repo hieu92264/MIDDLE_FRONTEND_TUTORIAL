@@ -9,4 +9,12 @@ export const dashboardRoutes: RouteRecordRaw[] = [
       layout: 'base',
     },
   },
+  {
+    path: '/users',
+    name: 'users',
+    component: () => import('@/modules/users/pages/UsersPage.vue'),
+    meta: {
+      layout: 'base',
+    },
+  },
 ]

@@ -21,10 +21,14 @@ const props = defineProps<DataTableColumnHeaderProps>()
 
 const isSortedAsc = computed(() => props.column.getIsSorted() === 'asc')
 const isSortedDesc = computed(() => props.column.getIsSorted() === 'desc')
+const isPinned = computed(() => props.column.getIsPinned())
+const hasColumnActions = computed(
+  () => props.column.getCanSort() || props.column.getCanHide() || props.column.getCanPin(),
+)
 </script>
 
 <template>
-  <div v-if="column.getCanSort()" class="flex items-center space-x-2">
+  <div v-if="hasColumnActions" class="flex items-center space-x-2">
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" class="-ml-3 h-8 data-[state=open]:bg-accent">
@@ -35,15 +39,33 @@ const isSortedDesc = computed(() => props.column.getIsSorted() === 'desc')
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem @click="column.toggleSorting(false)">
+        <DropdownMenuItem v-if="column.getCanSort()" @click="column.toggleSorting(false)">
           <ArrowUp class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
           Asc
         </DropdownMenuItem>
-        <DropdownMenuItem @click="column.toggleSorting(true)">
+        <DropdownMenuItem v-if="column.getCanSort()" @click="column.toggleSorting(true)">
           <ArrowDown class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
           Desc
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator
+          v-if="column.getCanSort() && (column.getCanPin() || column.getCanHide())"
+        />
+        <DropdownMenuItem
+          v-if="column.getCanPin() && isPinned !== 'left'"
+          @click="column.pin('left')"
+        >
+          Pin left
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          v-if="column.getCanPin() && isPinned !== 'right'"
+          @click="column.pin('right')"
+        >
+          Pin right
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="column.getCanPin() && isPinned" @click="column.pin(false)">
+          Unpin
+        </DropdownMenuItem>
+        <DropdownMenuSeparator v-if="column.getCanHide() && column.getCanPin()" />
         <DropdownMenuItem v-if="column.getCanHide()" @click="column.toggleVisibility(false)">
           <EyeOff class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
           Hide

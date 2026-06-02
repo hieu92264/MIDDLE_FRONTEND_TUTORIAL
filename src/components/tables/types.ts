@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@tanstack/vue-table'
+import type { ColumnDef, ColumnPinningPosition, ColumnResizeMode } from '@tanstack/vue-table'
 import type { Component, HTMLAttributes } from 'vue'
 
 declare module '@tanstack/vue-table' {
@@ -6,6 +6,7 @@ declare module '@tanstack/vue-table' {
     headerClass?: HTMLAttributes['class']
     cellClass?: HTMLAttributes['class']
     align?: 'left' | 'center' | 'right'
+    pin?: Exclude<ColumnPinningPosition, false>
   }
 }
 
@@ -85,6 +86,7 @@ export interface LayoutOptions {
 export interface AdvancedOptions {
   columnPinning?: boolean
   columnResizing?: boolean
+  columnResizeMode?: ColumnResizeMode
   columnOrdering?: boolean
   rowExpansion?: boolean
   grouping?: boolean

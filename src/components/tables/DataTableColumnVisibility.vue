@@ -12,15 +12,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+import { computed } from 'vue'
+
 interface DataTableColumnVisibilityProps {
   table: Table<TData>
 }
 
-defineProps<DataTableColumnVisibilityProps>()
+const props = defineProps<DataTableColumnVisibilityProps>()
 
 const setColumnVisibility = (column: Column<TData, unknown>, value: unknown) => {
   column.toggleVisibility(value === true)
 }
+
+const hideableColumns = computed(() => {
+  const visibility = props.table.getState().columnVisibility
+
+  return props.table
+    .getAllColumns()
+    .filter((column) => column.getCanHide())
+    .map((column) => ({
+      column,
+      id: column.id,
+      isVisible: column.getIsVisible(),
+      visibilityValue: visibility[column.id],
+    }))
+})
 </script>
 
 <template>
@@ -35,15 +51,13 @@ const setColumnVisibility = (column: Column<TData, unknown>, value: unknown) => 
       <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuCheckboxItem
-        v-for="column in table
-          .getAllColumns()
-          .filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())"
-        :key="column.id"
+        v-for="item in hideableColumns"
+        :key="item.id"
         class="capitalize"
-        :checked="column.getIsVisible()"
-        @update:checked="setColumnVisibility(column, $event)"
+        :model-value="item.isVisible"
+        @update:model-value="setColumnVisibility(item.column, $event)"
       >
-        {{ column.id }}
+        {{ item.id }}
       </DropdownMenuCheckboxItem>
     </DropdownMenuContent>
   </DropdownMenu>
