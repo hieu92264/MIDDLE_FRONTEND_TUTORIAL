@@ -49,6 +49,7 @@ mà không cần gọi API thật.
 | Lệnh | Mục đích |
 | --- | --- |
 | `bun dev` | Chạy Vite dev server |
+| `bun run make:module <name>` | Tạo cấu trúc thư mục cơ bản cho module mới |
 | `bun run build` | Type-check và build production |
 | `bun run build-only` | Chỉ build bằng Vite |
 | `bun run type-check` | Kiểm tra TypeScript bằng `vue-tsc` |
@@ -282,7 +283,13 @@ Prettier hiện cấu hình:
 
 ## Checklist khi thêm một module mới
 
-Ví dụ thêm module `users`:
+Tạo cấu trúc module bằng lệnh:
+
+```sh
+bun run make:module users
+```
+
+Lệnh trên sẽ tạo:
 
 ```txt
 src/modules/users/
@@ -294,15 +301,22 @@ src/modules/users/
   types/
 ```
 
+Có thể chạy thử mà không tạo file bằng:
+
+```sh
+bun run make:module users --dry-run
+```
+
 Các bước thường làm:
 
-1. Tạo page trong `src/modules/users/pages/`
-2. Tạo service nếu cần gọi API
-3. Tạo query/mutation trong `src/modules/users/queries/`
-4. Tạo schema nếu có form
-5. Tạo route file hoặc thêm route vào nhóm phù hợp trong `src/router/`
-6. Chọn `meta.layout` và auth meta đúng
-7. Chạy `bun lint` và `bun run build`
+1. Chạy `bun run make:module users`
+2. Tạo page trong `src/modules/users/pages/`
+3. Tạo service nếu cần gọi API
+4. Tạo query/mutation trong `src/modules/users/queries/`
+5. Tạo schema nếu có form
+6. Tạo route file hoặc thêm route vào nhóm phù hợp trong `src/router/`
+7. Chọn `meta.layout` và auth meta đúng
+8. Chạy `bun lint` và `bun run build`
 
 ## Một số lỗi thường gặp
 
