@@ -21,6 +21,7 @@ import type {
   SortingState,
   VisibilityState,
 } from '@tanstack/vue-table'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 
 import {
   Table,
@@ -32,8 +33,11 @@ import {
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 
+import { useColumnResize } from '@/hooks/useColumnResize'
+import DataTableRow from './DataTableRow.vue'
 import type { DataTableProps } from './types'
 
+// ─── Props & Emits ────────────────────────────────────────────────────────────
 const props = withDefaults(defineProps<DataTableProps<TData, TValue>>(), {
   loading: false,
   error: null,
@@ -54,6 +58,56 @@ const emit = defineEmits<{
   (e: 'export'): void
 }>()
 
+// ─── Helpers (định nghĩa trước khi dùng) ──────────────────────────────────────
+const getColumnDefinitionId = (column: ColumnDef<TData, TValue>): string | undefined => {
+  const columnRecord = column as unknown as Record<string, unknown>
+  const id = columnRecord.id
+  if (typeof id === 'string') return id
+  const accessorKey = columnRecord.accessorKey
+  return typeof accessorKey === 'string' ? accessorKey.replace(/\./g, '_') : undefined
+}
+
+const getInitialColumnPinning = (): ColumnPinningState => {
+  const left = props.selection?.enabled ? ['select'] : []
+  const right: string[] = []
+  for (const column of props.columns) {
+    const columnId = getColumnDefinitionId(column)
+    const pin = column.meta?.pin
+    if (!columnId || !pin) continue
+    if (pin === 'left') left.push(columnId)
+    else right.push(columnId)
+  }
+  return { left, right }
+}
+
+const getPinnedColumnStyle = (column: Column<TData, unknown>, zIndex: number): CSSProperties => {
+  const pinned = column.getIsPinned()
+  if (!pinned) return {}
+  const style: CSSProperties = {
+    position: 'sticky',
+    zIndex,
+    backgroundColor: 'var(--background)',
+  }
+  if (pinned === 'left') {
+    style.left = `${column.getStart('left')}px`
+    style.boxShadow = '1px 0 0 var(--border)'
+  } else {
+    style.right = `${column.getAfter('right')}px`
+    style.boxShadow = '-1px 0 0 var(--border)'
+  }
+  return style
+}
+
+const getCheckboxValue = (value: boolean | 'indeterminate') => value === true
+
+const resolveRowId = (row: TData): string => {
+  const rowKey = props.rowKey
+  if (typeof rowKey === 'function') return rowKey(row)
+  if (typeof rowKey === 'string') return String((row as Record<string, unknown>)[rowKey])
+  return ''
+}
+
+// ─── Reactive State ───────────────────────────────────────────────────────────
 const sorting = ref<SortingState>(
   props.sorting?.defaultSort?.map((s) => ({ id: s.id, desc: s.desc })) || [],
 )
@@ -65,91 +119,17 @@ const pagination = ref<PaginationState>({
   pageIndex: Math.max((props.pagination?.page ?? 1) - 1, 0),
   pageSize: props.pagination?.pageSize ?? 10,
 })
-
-const getColumnDefinitionId = (column: ColumnDef<TData, TValue>) => {
-  const columnRecord = column as unknown as Record<string, unknown>
-  const id = columnRecord.id
-
-  if (typeof id === 'string') return id
-
-  const accessorKey = columnRecord.accessorKey
-
-  return typeof accessorKey === 'string' ? accessorKey.replace(/\./g, '_') : undefined
-}
-
-const getInitialColumnPinning = (): ColumnPinningState => {
-  const left = props.selection?.enabled ? ['select'] : []
-  const right: string[] = []
-
-  for (const column of props.columns) {
-    const columnId = getColumnDefinitionId(column)
-    const pin = column.meta?.pin
-
-    if (!columnId || !pin) continue
-
-    if (pin === 'left') {
-      left.push(columnId)
-    } else {
-      right.push(columnId)
-    }
-  }
-
-  return { left, right }
-}
-
 const columnPinning = ref<ColumnPinningState>(getInitialColumnPinning())
 
-const getCheckboxValue = (value: boolean | 'indeterminate') => value === true
+// Ref tới scroll container — dùng cho cả resize composable lẫn virtualizer
+const scrollContainerRef = ref<HTMLElement | null>(null)
+
+// ─── Column Resize Mode ────────────────────────────────────────────────────────
+// Luôn dùng 'onEnd': visual feedback được xử lý bởi useColumnResize (RAF + CSS vars)
+// TanStack sẽ không update reactive state trong khi kéo → không trigger re-render
 const columnResizeMode = computed(() => props.advanced?.columnResizeMode ?? 'onEnd')
 
-const getColumnSizeStyle = (column: Column<TData, unknown>): CSSProperties => ({
-  minWidth: `${column.getSize()}px`,
-  width: `${column.getSize()}px`,
-  maxWidth: `${column.getSize()}px`,
-})
-
-const tableStyle = computed<CSSProperties>(() => ({
-  width: props.advanced?.columnResizing ? `${table.getTotalSize()}px` : undefined,
-  tableLayout: props.advanced?.columnResizing ? 'fixed' : 'auto',
-  ...(props.layout?.stickyHeader ? { borderCollapse: 'separate', borderSpacing: 0 } : {}),
-}))
-
-const getPinnedColumnStyle = (column: Column<TData, unknown>, zIndex: number): CSSProperties => {
-  const pinned = column.getIsPinned()
-
-  if (!pinned) return {}
-
-  const pinnedStyle: CSSProperties = {
-    position: 'sticky',
-    zIndex,
-    backgroundColor: 'var(--background)',
-  }
-
-  if (pinned === 'left') {
-    pinnedStyle.left = `${column.getStart('left')}px`
-    pinnedStyle.boxShadow = '1px 0 0 var(--border)'
-  } else {
-    pinnedStyle.right = `${column.getAfter('right')}px`
-    pinnedStyle.boxShadow = '-1px 0 0 var(--border)'
-  }
-
-  return pinnedStyle
-}
-
-const resolveRowId = (row: TData): string => {
-  const rowKey = props.rowKey
-
-  if (typeof rowKey === 'function') {
-    return rowKey(row)
-  }
-
-  if (typeof rowKey === 'string') {
-    return String((row as Record<string, unknown>)[rowKey])
-  }
-
-  return ''
-}
-
+// ─── Merged Columns (với selection) ───────────────────────────────────────────
 const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
   if (!props.selection?.enabled) return props.columns
 
@@ -184,6 +164,7 @@ const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
   return [selectionColumn, ...props.columns]
 })
 
+// ─── TanStack Table Instance ───────────────────────────────────────────────────
 const table = useVueTable({
   get data() {
     return props.data
@@ -222,7 +203,6 @@ const table = useVueTable({
   enableColumnPinning: props.advanced?.columnPinning,
   enableRowSelection: (row) => {
     if (!props.selection?.enabled) return false
-
     return props.selection.selectable?.(row.original) ?? true
   },
   enableMultiRowSelection: props.selection?.mode !== 'single',
@@ -236,30 +216,42 @@ const table = useVueTable({
   },
   onColumnFiltersChange: (updaterOrValue) => {
     columnFilters.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(columnFilters.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(columnFilters.value)
+        : updaterOrValue
     emit('filterChange', columnFilters.value)
   },
   onColumnVisibilityChange: (updaterOrValue) => {
     columnVisibility.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(columnVisibility.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(columnVisibility.value)
+        : updaterOrValue
   },
   onRowSelectionChange: (updaterOrValue) => {
     rowSelection.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(rowSelection.value)
+        : updaterOrValue
     emit('selectionChange', rowSelection.value)
   },
   onColumnPinningChange: (updaterOrValue) => {
     columnPinning.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(columnPinning.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(columnPinning.value)
+        : updaterOrValue
   },
   onPaginationChange: (updaterOrValue) => {
     pagination.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(pagination.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(pagination.value)
+        : updaterOrValue
     emit('paginationChange', pagination.value)
   },
   onGlobalFilterChange: (updaterOrValue) => {
     globalFilter.value =
-      typeof updaterOrValue === 'function' ? updaterOrValue(globalFilter.value) : updaterOrValue
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(globalFilter.value)
+        : updaterOrValue
     emit('filterChange', globalFilter.value)
   },
   getRowId: props.rowKey ? resolveRowId : undefined,
@@ -267,30 +259,186 @@ const table = useVueTable({
   manualSorting: props.manualMode || props.sorting?.manual,
   manualFiltering: props.manualMode || props.filtering?.manual,
 })
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PERFORMANCE OPTIMIZATIONS
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ─── [OPT-1] Table Layout Style ────────────────────────────────────────────────
+const tableStyle = computed<CSSProperties>(() => ({
+  width: props.advanced?.columnResizing ? `${table.getTotalSize()}px` : undefined,
+  // table-layout: fixed cần thiết để colgroup kiểm soát được width của toàn bộ cột
+  tableLayout: props.advanced?.columnResizing ? 'fixed' : 'auto',
+  ...(props.layout?.stickyHeader ? { borderCollapse: 'separate', borderSpacing: 0 } : {}),
+}))
+
+// ─── [OPT-2] CSS Custom Properties cho Column Widths ──────────────────────────
+/**
+ * Bind CSS vars lên container một lần thay vì inline style trên từng cell.
+ *
+ * Lifecycle khi resize:
+ * 1. Mount: computed này tính `--col-{id}-size` từ TanStack state
+ * 2. Trong lúc drag: useColumnResize ghi thẳng lên containerEl.style → KHÔNG qua Vue
+ * 3. Sau mouseup: setColumnSizing() → TanStack state update → computed tái tính → bind lại
+ *
+ * Kết quả: 0 Vue re-render trong suốt quá trình kéo chuột.
+ */
+const columnSizeCSSVars = computed<Record<string, string>>(() => {
+  if (!props.advanced?.columnResizing) return {}
+  const vars: Record<string, string> = {}
+  for (const col of table.getAllLeafColumns()) {
+    vars[`--col-${col.id}-size`] = `${col.getSize()}px`
+  }
+  return vars
+})
+
+// ─── [OPT-3] Cache Pinned Column Styles ───────────────────────────────────────
+/**
+ * Tính pinned styles một lần cho tất cả headers (key = header.id).
+ * Tránh gọi column.getStart() / column.getAfter() lặp lại trong mỗi header render.
+ */
+const pinnedHeaderStyles = computed(() => {
+  const styles = new Map<string, CSSProperties>()
+  const zIndex = props.layout?.stickyHeader ? 50 : 20
+  for (const header of table.getFlatHeaders()) {
+    styles.set(header.id, getPinnedColumnStyle(header.column, zIndex))
+  }
+  return styles
+})
+
+/**
+ * Tính pinned styles một lần cho tất cả leaf columns (key = column.id).
+ * Toàn bộ cells trong cùng một column dùng chung object này → không re-compute.
+ */
+const pinnedCellStyles = computed(() => {
+  const styles = new Map<string, CSSProperties>()
+  for (const col of table.getAllLeafColumns()) {
+    styles.set(col.id, getPinnedColumnStyle(col, 10))
+  }
+  return styles
+})
+
+// ─── [OPT-4] Density Class (một lần thay vì mỗi cell) ────────────────────────
+const densityClass = computed(() => {
+  if (props.layout?.density === 'compact') return 'py-1'
+  if (props.layout?.density === 'comfortable') return 'py-4'
+  return ''
+})
+
+const headerDensityClass = computed(() => {
+  if (props.layout?.density === 'compact') return 'py-1 h-8'
+  if (props.layout?.density === 'comfortable') return 'py-4 h-14'
+  return ''
+})
+
+// ─── [OPT-5] Custom Resize Handler (RAF + CSS vars) ───────────────────────────
+/**
+ * Thay thế TanStack's built-in resize handler.
+ * - Dùng requestAnimationFrame để throttle DOM writes về ~60fps
+ * - Ghi trực tiếp CSS Custom Property lên container (bypass Vue reactivity)
+ * - Chỉ gọi setColumnSizing() một lần khi mouseup
+ */
+const { startResize, resizingColumnId } = useColumnResize((columnId, newSize) => {
+  table.setColumnSizing((old) => ({ ...old, [columnId]: newSize }))
+})
+
+// ─── [OPT-6] Row Virtualization (@tanstack/vue-virtual) ───────────────────────
+/**
+ * Chỉ render các rows đang visible trong viewport + overscan buffer.
+ * Kích hoạt khi props.advanced.virtualization = true VÀ bảng có chiều cao cố định.
+ *
+ * Yêu cầu: scrollContainer phải có chiều cao cố định (props.layout.height hoặc maxHeight).
+ */
+const allRows = computed(() => table.getRowModel().rows)
+
+const rowVirtualizer = computed(() =>
+  useVirtualizer({
+    count: allRows.value.length,
+    getScrollElement: () => scrollContainerRef.value,
+    estimateSize: () => {
+      // Ước tính chiều cao mỗi row theo density setting
+      if (props.layout?.density === 'compact') return 33
+      if (props.layout?.density === 'comfortable') return 57
+      return 41
+    },
+    // Render thêm 10 rows ngoài viewport để scroll mượt không bị trắng
+    overscan: 10,
+    enabled: props.advanced?.virtualization ?? false,
+  }),
+)
+
+const virtualRows = computed(() =>
+  props.advanced?.virtualization ? rowVirtualizer.value.getVirtualItems() : null,
+)
+
+const totalVirtualHeight = computed(() =>
+  props.advanced?.virtualization ? rowVirtualizer.value.getTotalSize() : 0,
+)
+
+// Rows thực sự được render (virtual items → actual rows, hoặc toàn bộ nếu không virtual)
+const renderedRows = computed(() => {
+  if (!props.advanced?.virtualization || !virtualRows.value) return allRows.value
+  return virtualRows.value.map((vRow) => allRows.value[vRow.index])
+})
+
+// Padding top/bottom để tạo chiều cao ảo cho scroll
+const paddingTop = computed(() => {
+  if (!props.advanced?.virtualization || !virtualRows.value?.length) return 0
+  return virtualRows.value[0]?.start ?? 0
+})
+
+const paddingBottom = computed(() => {
+  if (!props.advanced?.virtualization || !virtualRows.value?.length) return 0
+  const lastVRow = virtualRows.value[virtualRows.value.length - 1]
+  return totalVirtualHeight.value - (lastVRow?.end ?? 0)
+})
 </script>
 
 <template>
   <div class="space-y-4">
     <!-- Toolbar Slot -->
-    <slot name="toolbar" :table="table"></slot>
+    <slot name="toolbar" :table="table" />
 
     <div
       class="rounded-md border flex flex-col"
-      :class="[
-        props.layout?.height ? `h-[${props.layout.height}] overflow-hidden` : '',
-        props.layout?.maxHeight ? `max-h-[${props.layout.maxHeight}] overflow-hidden` : '',
-      ]"
       :style="{
         height: props.layout?.height,
         maxHeight: props.layout?.maxHeight,
+        overflow: props.layout?.height || props.layout?.maxHeight ? 'hidden' : undefined,
       }"
     >
-      <div class="min-h-0 flex-1 overflow-auto">
+      <!--
+        [OPT-2] Bind CSS Custom Properties một lần tại đây.
+        Tất cả <col> trong colgroup dùng var(--col-{id}-size) → width tự động cập nhật
+        khi CSS var thay đổi mà KHÔNG cần Vue re-render.
+
+        ref="scrollContainerRef" → dùng cho useColumnResize và useVirtualizer.
+      -->
+      <div
+        ref="scrollContainerRef"
+        class="min-h-0 flex-1 overflow-auto"
+        :style="columnSizeCSSVars"
+      >
         <Table
           container-class="overflow-visible min-w-full"
           :class="{ 'w-max': props.layout?.responsive || props.advanced?.columnResizing }"
           :table-style="tableStyle"
         >
+          <!--
+            [OPT-1] <colgroup> định nghĩa width cho toàn bộ cột chỉ một lần.
+            Với table-layout: fixed, tất cả cells trong cột kế thừa width này.
+            → Không cần min-width/width/max-width trên từng <td>.
+            → Khi CSS var thay đổi (do drag resize), browser chỉ reflow layout 1 lần.
+          -->
+          <colgroup v-if="props.advanced?.columnResizing">
+            <col
+              v-for="header in table.getFlatHeaders()"
+              :key="header.id"
+              :style="{ width: `var(--col-${header.id}-size)` }"
+            />
+          </colgroup>
+
+          <!-- ── Header ── -->
           <TableHeader
             :class="{
               'sticky top-0 z-40 bg-background': props.layout?.stickyHeader,
@@ -300,71 +448,103 @@ const table = useVueTable({
               <TableHead
                 v-for="header in headerGroup.headers"
                 :key="header.id"
+                v-memo="[
+                  header.column.getSize(),
+                  header.column.getIsPinned(),
+                  resizingColumnId === header.column.id,
+                ]"
                 :class="[
                   header.column.columnDef.meta?.headerClass,
-                  props.layout?.density === 'compact' ? 'py-1 h-8' : '',
-                  props.layout?.density === 'comfortable' ? 'py-4 h-14' : '',
+                  headerDensityClass,
                   props.layout?.stickyHeader
                     ? 'sticky top-0 z-40 border-b bg-background shadow-sm'
                     : '',
                   header.column.getCanResize() ? 'relative select-none' : '',
                   props.layout?.bordered ? 'border-r border-border/70 last:border-r-0' : '',
                 ]"
-                :style="{
-                  ...getColumnSizeStyle(header.column),
-                  ...getPinnedColumnStyle(header.column, props.layout?.stickyHeader ? 50 : 20),
-                }"
+                :style="pinnedHeaderStyles.get(header.id)"
               >
                 <FlexRender
                   v-if="!header.isPlaceholder"
                   :render="header.column.columnDef.header"
                   :props="{ ...header.getContext() }"
                 />
+
+                <!--
+                  [OPT-5] Resize Handle — sử dụng custom handler thay vì TanStack built-in.
+                  - startResize() khởi động RAF loop + ghi CSS var trực tiếp vào DOM
+                  - Không gọi header.getResizeHandler() → không trigger TanStack reactive state
+                  - :class binding kiểm tra resizingColumnId (primitive string) → re-render tối thiểu
+                -->
                 <div
-                  v-if="header.column.getCanResize()"
-                  class="absolute top-0 right-0 z-20 h-full w-1 cursor-col-resize touch-none bg-border/80 select-none hover:w-1.5 hover:bg-primary data-[is-resizing=true]:w-1.5 data-[is-resizing=true]:bg-primary"
-                  :data-is-resizing="header.column.getIsResizing()"
+                  v-if="header.column.getCanResize() && props.advanced?.columnResizing"
+                  class="absolute top-0 right-0 z-20 h-full w-1 cursor-col-resize touch-none
+                         select-none bg-border/80 transition-[width,background-color] duration-100
+                         hover:w-1.5 hover:bg-primary"
+                  :class="{
+                    'w-1.5 !bg-primary': resizingColumnId === header.column.id,
+                  }"
                   @click.stop
-                  @mousedown.stop="header.getResizeHandler()($event)"
-                  @touchstart.stop="header.getResizeHandler()($event)"
-                ></div>
+                  @mousedown.stop="
+                    scrollContainerRef &&
+                      startResize(
+                        $event,
+                        header.column.id,
+                        header.column.getSize(),
+                        scrollContainerRef,
+                        header.column.columnDef.minSize ?? 40,
+                      )
+                  "
+                />
               </TableHead>
             </TableRow>
           </TableHeader>
+
+          <!-- ── Body ── -->
           <TableBody>
-            <template v-if="table.getRowModel().rows?.length">
-              <TableRow
-                v-for="row in table.getRowModel().rows"
+            <template v-if="allRows.length">
+              <!--
+                [OPT-6] Virtualization spacers — chỉ active khi props.advanced.virtualization = true.
+                Tạo chiều cao ảo để scrollbar hoạt động đúng dù chỉ render ~20 rows.
+              -->
+              <tr v-if="paddingTop > 0" aria-hidden="true" :style="{ height: `${paddingTop}px` }">
+                <td :colspan="mergedColumns.length" class="p-0 border-0" />
+              </tr>
+
+              <!--
+                [OPT-4, OPT-3] DataTableRow component riêng với v-memo.
+                Khi một column resize:
+                  - Rows KHÔNG re-render trong suốt quá trình drag (CSS vars update DOM trực tiếp)
+                  - Rows re-render 1 lần lúc bắt đầu và 1 lần lúc kết thúc drag
+                  - Rows re-render khi selection state thay đổi
+              -->
+              <DataTableRow
+                v-for="row in renderedRows"
                 :key="row.id"
-                :data-state="row.getIsSelected() ? 'selected' : undefined"
-                class="cursor-pointer"
-                @click="emit('rowClick', row.original)"
-                @dblclick="emit('rowDoubleClick', row.original)"
+                :row="row"
+                :pinned-styles="pinnedCellStyles"
+                :density-class="densityClass"
+                :bordered="props.layout?.bordered ?? false"
+                :is-selected="row.getIsSelected()"
+                :resizing-column-id="resizingColumnId"
+                @row-click="emit('rowClick', $event)"
+                @row-double-click="emit('rowDoubleClick', $event)"
+              />
+
+              <!-- Bottom spacer cho virtualization -->
+              <tr
+                v-if="paddingBottom > 0"
+                aria-hidden="true"
+                :style="{ height: `${paddingBottom}px` }"
               >
-                <TableCell
-                  v-for="cell in row.getVisibleCells()"
-                  :key="cell.id"
-                  :class="[
-                    cell.column.columnDef.meta?.cellClass,
-                    props.layout?.density === 'compact' ? 'py-1' : '',
-                    props.layout?.density === 'comfortable' ? 'py-4' : '',
-                    props.layout?.bordered ? 'border-r border-border/70 last:border-r-0' : '',
-                  ]"
-                  :style="{
-                    ...getColumnSizeStyle(cell.column),
-                    ...getPinnedColumnStyle(cell.column, 10),
-                  }"
-                >
-                  <FlexRender
-                    :render="cell.column.columnDef.cell"
-                    :props="{ ...cell.getContext() }"
-                  />
-                </TableCell>
-              </TableRow>
+                <td :colspan="mergedColumns.length" class="p-0 border-0" />
+              </tr>
             </template>
+
+            <!-- Empty / Loading state -->
             <template v-else>
               <TableRow>
-                <TableCell :colSpan="columns.length" class="h-24 text-center">
+                <TableCell :col-span="mergedColumns.length" class="h-24 text-center">
                   {{ loading ? 'Loading...' : emptyText }}
                 </TableCell>
               </TableRow>
@@ -375,6 +555,6 @@ const table = useVueTable({
     </div>
 
     <!-- Pagination Slot -->
-    <slot name="pagination" :table="table"></slot>
+    <slot name="pagination" :table="table" />
   </div>
 </template>
