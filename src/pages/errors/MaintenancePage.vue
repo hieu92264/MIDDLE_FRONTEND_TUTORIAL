@@ -140,8 +140,6 @@ const checkSystemStatus = () => {
   </div>
 </template>
 
-<template></template>
-
 <style scoped>
 .animate-spin-slow {
   animation: spin 12s linear infinite;

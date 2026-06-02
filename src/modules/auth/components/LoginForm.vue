@@ -4,13 +4,14 @@ import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { loginSchema } from '@/modules/auth/schemas'
+import { useLoginMutation } from '@/modules/auth/queries/auth.query'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
-import { AuthService } from '@/services/auth.service'
 import { toast } from 'vue-sonner'
 import { User, Lock, Eye, EyeOff, Loader2, Sparkles } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { mutateAsync: login } = useLoginMutation()
 
 const showPassword = ref(false)
 const apiError = ref('')
@@ -29,10 +30,10 @@ const [password, passwordAttrs] = defineField('password')
 const onSubmit = handleSubmit(async (values) => {
   apiError.value = ''
   try {
-    const payload = await AuthService.login(values)
+    const payload = await login(values)
     if (payload && payload.access_token) {
       authStore.setSession(payload)
-      toast.success(`Welcome back, ${payload.user.username}!`)
+      toast.success(`Welcome back, ${payload.user?.username || values.username}!`)
       router.push('/')
     } else {
       // In case the API returns something unexpected
@@ -124,15 +125,15 @@ const handleDemoLogin = () => {
           placeholder="Enter username"
           :class="[
             'block w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-accent/25 border focus:outline-none focus:ring-1 transition-all',
-            errors.username
+            errors?.username
               ? 'border-destructive focus:ring-destructive focus:border-destructive bg-destructive/5'
               : 'border-border focus:ring-primary focus:border-primary',
           ]"
           :disabled="isSubmitting"
         />
       </div>
-      <p v-if="errors.username" class="text-[11px] text-destructive font-medium">
-        {{ errors.username }}
+      <p v-if="errors?.username" class="text-[11px] text-destructive font-medium">
+        {{ errors?.username }}
       </p>
     </div>
 
@@ -163,7 +164,7 @@ const handleDemoLogin = () => {
           placeholder="••••••••"
           :class="[
             'block w-full pl-10 pr-10 py-3 text-sm rounded-xl bg-accent/25 border focus:outline-none focus:ring-1 transition-all',
-            errors.password
+            errors?.password
               ? 'border-destructive focus:ring-destructive focus:border-destructive bg-destructive/5'
               : 'border-border focus:ring-primary focus:border-primary',
           ]"
@@ -178,8 +179,8 @@ const handleDemoLogin = () => {
           <Eye v-else class="h-4 w-4" />
         </button>
       </div>
-      <p v-if="errors.password" class="text-[11px] text-destructive font-medium">
-        {{ errors.password }}
+      <p v-if="errors?.password" class="text-[11px] text-destructive font-medium">
+        {{ errors?.password }}
       </p>
     </div>
 
