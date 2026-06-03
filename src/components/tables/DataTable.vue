@@ -400,7 +400,7 @@ const paddingBottom = computed(() => {
     <slot name="toolbar" :table="table" />
 
     <div
-      class="rounded-md border flex flex-col"
+      class="rounded-md border flex flex-col bg-background text-foreground"
       :style="{
         height: props.layout?.height,
         maxHeight: props.layout?.maxHeight,
@@ -440,11 +440,16 @@ const paddingBottom = computed(() => {
 
           <!-- ── Header ── -->
           <TableHeader
-            :class="{
-              'sticky top-0 z-40 bg-background': props.layout?.stickyHeader,
-            }"
+            :class="[
+              props.layout?.stickyHeader ? 'sticky top-0 z-40' : '',
+              'bg-muted/50',
+            ]"
           >
-            <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+            <TableRow
+              v-for="headerGroup in table.getHeaderGroups()"
+              :key="headerGroup.id"
+              class="border-b border-border/60 hover:bg-transparent"
+            >
               <TableHead
                 v-for="header in headerGroup.headers"
                 :key="header.id"
@@ -457,10 +462,10 @@ const paddingBottom = computed(() => {
                   header.column.columnDef.meta?.headerClass,
                   headerDensityClass,
                   props.layout?.stickyHeader
-                    ? 'sticky top-0 z-40 border-b bg-background shadow-sm'
+                    ? 'sticky top-0 z-40 border-b bg-muted/50'
                     : '',
-                  header.column.getCanResize() ? 'relative select-none' : '',
-                  props.layout?.bordered ? 'border-r border-border/70 last:border-r-0' : '',
+                  header.column.getCanResize() ? 'relative select-none overflow-visible' : '',
+                  props.layout?.bordered ? 'border-r border-border/60 last:border-r-0' : '',
                 ]"
                 :style="pinnedHeaderStyles.get(header.id)"
               >
@@ -471,19 +476,18 @@ const paddingBottom = computed(() => {
                 />
 
                 <!--
-                  [OPT-5] Resize Handle — sử dụng custom handler thay vì TanStack built-in.
-                  - startResize() khởi động RAF loop + ghi CSS var trực tiếp vào DOM
-                  - Không gọi header.getResizeHandler() → không trigger TanStack reactive state
-                  - :class binding kiểm tra resizingColumnId (primitive string) → re-render tối thiểu
+                  [OPT-5] Resize Handle — wide transparent hit zone + narrow visual bar.
+                  Outer div: w-4 (16px) transparent, cursor-col-resize trên toàn bộ 16px.
+                    - Dịch sang phải -8px để căn giữa trên đường border cột
+                    - z-30 để hover zone không bị cắt bởi column bên phải
+                  Inner div: w-px (2px) visual indicator, centered trong hit zone.
+                    - Transition smooth khi hover/active
+                    - Scale lên w-1 (4px) khi hover hoặc đang resize
                 -->
                 <div
                   v-if="header.column.getCanResize() && props.advanced?.columnResizing"
-                  class="absolute top-0 right-0 z-20 h-full w-1 cursor-col-resize touch-none
-                         select-none bg-border/80 transition-[width,background-color] duration-100
-                         hover:w-1.5 hover:bg-primary"
-                  :class="{
-                    'w-1.5 !bg-primary': resizingColumnId === header.column.id,
-                  }"
+                  class="group absolute inset-y-0 right-0 z-30 flex w-4 translate-x-1/2
+                         cursor-col-resize touch-none select-none items-stretch justify-center"
                   @click.stop
                   @mousedown.stop="
                     scrollContainerRef &&
@@ -495,7 +499,16 @@ const paddingBottom = computed(() => {
                         header.column.columnDef.minSize ?? 40,
                       )
                   "
-                />
+                >
+                  <!-- Visual indicator: thin bar, expands on hover/resize -->
+                  <div
+                    class="w-px rounded-full bg-border/60 transition-all duration-150
+                           group-hover:w-0.5 group-hover:bg-primary/70"
+                    :class="{
+                      '!w-0.5 !bg-primary': resizingColumnId === header.column.id,
+                    }"
+                  />
+                </div>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -503,21 +516,11 @@ const paddingBottom = computed(() => {
           <!-- ── Body ── -->
           <TableBody>
             <template v-if="allRows.length">
-              <!--
-                [OPT-6] Virtualization spacers — chỉ active khi props.advanced.virtualization = true.
-                Tạo chiều cao ảo để scrollbar hoạt động đúng dù chỉ render ~20 rows.
-              -->
+              <!-- Virtualization top spacer -->
               <tr v-if="paddingTop > 0" aria-hidden="true" :style="{ height: `${paddingTop}px` }">
                 <td :colspan="mergedColumns.length" class="p-0 border-0" />
               </tr>
 
-              <!--
-                [OPT-4, OPT-3] DataTableRow component riêng với v-memo.
-                Khi một column resize:
-                  - Rows KHÔNG re-render trong suốt quá trình drag (CSS vars update DOM trực tiếp)
-                  - Rows re-render 1 lần lúc bắt đầu và 1 lần lúc kết thúc drag
-                  - Rows re-render khi selection state thay đổi
-              -->
               <DataTableRow
                 v-for="row in renderedRows"
                 :key="row.id"
@@ -531,7 +534,7 @@ const paddingBottom = computed(() => {
                 @row-double-click="emit('rowDoubleClick', $event)"
               />
 
-              <!-- Bottom spacer cho virtualization -->
+              <!-- Virtualization bottom spacer -->
               <tr
                 v-if="paddingBottom > 0"
                 aria-hidden="true"
@@ -544,7 +547,7 @@ const paddingBottom = computed(() => {
             <!-- Empty / Loading state -->
             <template v-else>
               <TableRow>
-                <TableCell :col-span="mergedColumns.length" class="h-24 text-center">
+                <TableCell :col-span="mergedColumns.length" class="h-24 text-center text-muted-foreground">
                   {{ loading ? 'Loading...' : emptyText }}
                 </TableCell>
               </TableRow>
