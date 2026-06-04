@@ -80,13 +80,13 @@ const getInitialColumnPinning = (): ColumnPinningState => {
   return { left, right }
 }
 
-const getPinnedColumnStyle = (column: Column<TData, unknown>, zIndex: number): CSSProperties => {
+const getPinnedColumnStyle = (column: Column<TData, unknown>, zIndex: number, isHeader = false): CSSProperties => {
   const pinned = column.getIsPinned()
   if (!pinned) return {}
   const style: CSSProperties = {
     position: 'sticky',
     zIndex,
-    backgroundColor: 'var(--background)',
+    backgroundColor: isHeader ? 'var(--muted)' : 'var(--background)',
   }
   if (pinned === 'left') {
     style.left = `${column.getStart('left')}px`
@@ -135,7 +135,7 @@ const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
 
   const selectionColumn: ColumnDef<TData, TValue> = {
     id: 'select',
-    size: 40,
+    size: 48,
     header: ({ table }: HeaderContext<TData, TValue>) =>
       h(Checkbox, {
         modelValue:
@@ -145,7 +145,6 @@ const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
           table.toggleAllPageRowsSelected(getCheckboxValue(value)),
         onClick: (event: MouseEvent) => event.stopPropagation(),
         ariaLabel: 'Select all',
-        class: 'translate-y-[2px]',
       }),
     cell: ({ row }: CellContext<TData, TValue>) =>
       h(Checkbox, {
@@ -154,7 +153,6 @@ const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
           row.toggleSelected(getCheckboxValue(value)),
         onClick: (event: MouseEvent) => event.stopPropagation(),
         ariaLabel: 'Select row',
-        class: 'translate-y-[2px]',
       }),
     enableSorting: false,
     enableHiding: false,
@@ -301,7 +299,7 @@ const pinnedHeaderStyles = computed(() => {
   const styles = new Map<string, CSSProperties>()
   const zIndex = props.layout?.stickyHeader ? 50 : 20
   for (const header of table.getFlatHeaders()) {
-    styles.set(header.id, getPinnedColumnStyle(header.column, zIndex))
+    styles.set(header.id, getPinnedColumnStyle(header.column, zIndex, true))
   }
   return styles
 })
@@ -442,7 +440,7 @@ const paddingBottom = computed(() => {
           <TableHeader
             :class="[
               props.layout?.stickyHeader ? 'sticky top-0 z-40' : '',
-              'bg-muted/50',
+              'bg-muted',
             ]"
           >
             <TableRow
@@ -462,7 +460,7 @@ const paddingBottom = computed(() => {
                   header.column.columnDef.meta?.headerClass,
                   headerDensityClass,
                   props.layout?.stickyHeader
-                    ? 'sticky top-0 z-40 border-b bg-muted/50'
+                    ? 'sticky top-0 z-40 bg-muted shadow-[0_1px_0_0_var(--border)]'
                     : '',
                   header.column.getCanResize() ? 'relative select-none overflow-visible' : '',
                   props.layout?.bordered ? 'border-r border-border/60 last:border-r-0' : '',

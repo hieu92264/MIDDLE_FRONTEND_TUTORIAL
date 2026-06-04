@@ -27,7 +27,9 @@ const layouts = {
 
     <RouterView v-slot="{ Component, route }">
       <component :is="layouts[route.meta.layout ?? 'blank']">
-        <component :is="Component" />
+        <Transition name="page" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
       </component>
     </RouterView>
     <Toaster theme="system" position="top-right" close-button rich-colors />
@@ -58,6 +60,28 @@ const layouts = {
   }
   100% {
     transform: translateX(100%) scaleX(0.35);
+  }
+}
+
+/* Page route transition */
+.page-enter-active {
+  animation: page-fade-in 0.18s ease-out;
+}
+.page-leave-active {
+  transition: opacity 0.12s ease-in;
+}
+.page-leave-to {
+  opacity: 0;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
