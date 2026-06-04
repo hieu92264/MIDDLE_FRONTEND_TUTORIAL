@@ -1,317 +1,333 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSidebarStore } from '@/stores/sidebar.store'
-import { useAuthStore } from '@/modules/auth/stores/auth.store'
+import { useTabsStore } from '@/stores/tabs.store'
+import { useAppStore } from '@/stores/app.store'
 import { useColorMode } from '@vueuse/core'
-import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  Sun,
-  Moon,
-  Bell,
-  Search,
-  Menu,
-  ChevronsUpDown,
-} from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import SidebarSection from './partials/SidebarSection.vue'
+import HeaderSection from './partials/HeaderSection.vue'
+import TabBar from './partials/TabBar.vue'
 
-const router = useRouter()
+const route = useRoute()
 const sidebarStore = useSidebarStore()
-const authStore = useAuthStore()
+const tabsStore = useTabsStore()
+const appStore = useAppStore()
 const mode = useColorMode()
 
 const isCollapsed = computed(() => sidebarStore.isCollapsed)
+const isPageLoading = computed(() => appStore.isPageLoading)
 const isMobileOpen = ref(false)
 
-const menuItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Users', path: '/users', icon: Users },
-  { name: 'Settings', path: '/settings', icon: Settings },
-]
+const closeMobile = () => {
+  isMobileOpen.value = false
+}
+const openMobile = () => {
+  isMobileOpen.value = true
+}
 
-const currentUser = computed(
-  () => authStore.user || { username: 'Guest', email: 'guest@example.com', role: 'user' },
+// Auto-open tab whenever route changes
+watch(
+  () => route.fullPath,
+  () => {
+    const title = (route.meta?.title as string) || (route.name as string) || 'Page'
+    const affix = route.meta?.affix as boolean | undefined
+    tabsStore.openTab({
+      key: route.fullPath,
+      title,
+      path: route.fullPath,
+      name: route.name as string,
+      affix,
+    })
+  },
+  { immediate: true },
 )
-
-const toggleSidebarOrMobile = () => {
-  if (window.innerWidth < 768) {
-    isMobileOpen.value = !isMobileOpen.value
-  } else {
-    sidebarStore.toggle()
-  }
-}
-
-const toggleTheme = () => {
-  mode.value = mode.value === 'dark' ? 'light' : 'dark'
-}
-
-const handleLogout = async () => {
-  try {
-    authStore.clearSession()
-    toast.success('Logged out successfully')
-    router.push({ name: 'login' })
-  } catch {
-    authStore.clearSession()
-    router.push({ name: 'login' })
-  }
-}
 </script>
 
 <template>
-  <div
-    class="min-h-screen flex bg-background text-foreground transition-colors duration-300 font-sans"
-  >
-    <!-- Backdrop Overlay on Mobile -->
-    <div
-      v-if="isMobileOpen"
-      @click="isMobileOpen = false"
-      class="fixed inset-0 bg-black/40 backdrop-blur-xs z-30 md:hidden transition-opacity duration-300"
-    />
+  <div class="app-layout" :class="{ dark: mode === 'dark' }">
+    <!-- Mobile Backdrop -->
+    <Transition name="backdrop">
+      <div v-if="isMobileOpen" class="mobile-backdrop" @click="closeMobile" />
+    </Transition>
 
     <!-- Sidebar -->
-    <aside
-      :class="[
-        'fixed top-0 bottom-0 left-0 z-40 flex flex-col bg-card/60 backdrop-blur-xl border-r border-border transition-all duration-300 ease-in-out',
-        isCollapsed ? 'md:w-20' : 'md:w-64',
-        'w-64', // Always 64 (256px) wide on mobile when sliding in
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-      ]"
-    >
-      <!-- Sidebar Header -->
-      <div
-        class="h-16 flex items-center px-4 border-b border-border shrink-0 justify-between md:justify-start"
-      >
-        <div
-          :class="[
-            'flex items-center gap-3 overflow-hidden w-full',
-            isCollapsed ? 'md:justify-center' : '',
-          ]"
-        >
-          <div
-            class="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0"
-          >
-            <span class="font-bold text-lg">A</span>
-          </div>
-          <span
-            v-if="!isCollapsed"
-            class="font-semibold text-lg bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent whitespace-nowrap md:block hidden"
-          >
-            Antigravity
-          </span>
-          <!-- Mobile Title always shown -->
-          <span
-            class="font-semibold text-lg bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent whitespace-nowrap md:hidden block"
-          >
-            Antigravity
-          </span>
-        </div>
-
-        <!-- Mobile close button -->
-        <button
-          @click="isMobileOpen = false"
-          class="h-8 w-8 rounded-lg hover:bg-accent hover:text-accent-foreground flex items-center justify-center border border-border shrink-0 md:hidden cursor-pointer"
-        >
-          <ChevronLeft class="h-4 w-4" />
-        </button>
-      </div>
-
-      <!-- Navigation Menu -->
-      <nav class="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
-        <router-link
-          v-for="item in menuItems"
-          :key="item.path"
-          :to="item.path"
-          v-slot="{ isActive }"
-        >
-          <span
-            @click="isMobileOpen = false"
-            :class="[
-              'flex items-center transition-all duration-200 group cursor-pointer relative rounded-xl font-medium text-sm',
-              isCollapsed
-                ? 'md:h-10 md:w-10 md:justify-center md:mx-auto md:px-0 md:py-0'
-                : 'px-3 py-2.5 w-full gap-3',
-              'px-3 py-2.5 w-full gap-3', // default classes on mobile
-              isActive
-                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/10'
-                : 'hover:bg-accent hover:text-accent-foreground text-muted-foreground',
-            ]"
-          >
-            <component
-              :is="item.icon"
-              :class="['h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-105']"
-            />
-            <span
-              :class="[
-                'transition-all duration-300 whitespace-nowrap',
-                isCollapsed ? 'md:hidden' : 'block',
-              ]"
-            >
-              {{ item.name }}
-            </span>
-          </span>
-        </router-link>
-      </nav>
-
-      <!-- Sidebar Footer (Shadcn style user menu) -->
-      <div class="p-3 border-t border-border bg-accent/10">
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <button
-              :class="[
-                'flex items-center rounded-xl hover:bg-accent hover:text-accent-foreground transition-all cursor-pointer w-full text-left outline-none border border-transparent select-none focus:bg-accent focus:text-accent-foreground',
-                isCollapsed ? 'md:justify-center md:p-0 md:h-10 md:w-10 md:mx-auto' : 'p-2 gap-3',
-              ]"
-            >
-              <!-- Avatar Initial badge -->
-              <div
-                class="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shrink-0 shadow-md shadow-primary/10"
-              >
-                {{ currentUser.username.charAt(0).toUpperCase() }}
-              </div>
-              <!-- Profile details -->
-              <div
-                :class="[
-                  'flex-1 min-w-0 flex flex-col transition-all duration-300',
-                  isCollapsed ? 'md:hidden' : 'block',
-                ]"
-              >
-                <span class="text-xs font-bold text-foreground truncate">{{
-                  currentUser.username
-                }}</span>
-                <span class="text-[10px] text-muted-foreground truncate">{{
-                  currentUser.email
-                }}</span>
-              </div>
-              <!-- ChevronUpDown -->
-              <ChevronsUpDown
-                v-if="!isCollapsed"
-                class="h-3.5 w-3.5 text-muted-foreground shrink-0 md:block hidden"
-              />
-            </button>
-          </DropdownMenuTrigger>
-
-          <!-- Menu Content -->
-          <DropdownMenuContent align="end" class="w-56 mb-2 z-50">
-            <DropdownMenuLabel class="font-normal flex flex-col gap-1 p-2">
-              <span class="text-xs font-semibold text-foreground">{{ currentUser.username }}</span>
-              <span class="text-[10px] text-muted-foreground truncate">{{
-                currentUser.email
-              }}</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem class="cursor-pointer text-xs font-medium py-2">
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem class="cursor-pointer text-xs font-medium py-2">
-              Billing Info
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              @click="handleLogout"
-              class="cursor-pointer text-xs font-medium text-destructive focus:bg-destructive/10 focus:text-destructive py-2"
-            >
-              <LogOut class="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
-
-    <!-- Main View Content -->
     <div
-      :class="[
-        'flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ease-in-out',
-        isCollapsed ? 'md:pl-20' : 'md:pl-64',
-        'pl-0', // Default mobile padding is 0 since sidebar is hidden
-      ]"
+      class="sidebar-wrapper"
+      :class="{
+        'sidebar-wrapper--collapsed': isCollapsed,
+        'sidebar-wrapper--mobile-open': isMobileOpen,
+      }"
     >
-      <!-- Header / Navbar -->
-      <header
-        class="h-16 border-b border-border bg-card/60 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-20"
-      >
-        <!-- Search & Toggle Menu -->
-        <div class="flex items-center gap-4">
-          <button
-            @click="toggleSidebarOrMobile"
-            class="h-9 w-9 rounded-xl hover:bg-accent hover:text-accent-foreground flex items-center justify-center border border-border cursor-pointer outline-none shrink-0"
-          >
-            <Menu class="h-5 w-5" />
-          </button>
+      <SidebarSection />
+    </div>
 
-          <div class="relative max-w-xs hidden sm:block">
-            <Search class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search anything..."
-              class="w-64 pl-9 pr-4 py-2 text-xs rounded-xl bg-accent/30 border border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all bg-card/40"
-            />
+    <!-- Main Area -->
+    <div
+      class="main-area"
+      :class="{
+        'main-area--collapsed': isCollapsed,
+      }"
+    >
+      <!-- Header -->
+      <HeaderSection @open-mobile-sidebar="openMobile" />
+
+      <!-- Tab Bar -->
+      <TabBar />
+
+      <!-- Page Content -->
+      <main class="page-content">
+        <!-- Global Loading Overlay -->
+        <Transition name="loading-overlay">
+          <div v-if="isPageLoading" class="page-loading-overlay">
+            <div class="page-loading-card">
+              <!-- Spinner ring -->
+              <div class="loading-spinner">
+                <div class="loading-ring" />
+                <div class="loading-ring loading-ring--delay" />
+              </div>
+              <!-- Pulsing dots -->
+              <div class="loading-dots">
+                <span class="loading-dot" />
+                <span class="loading-dot loading-dot--d1" />
+                <span class="loading-dot loading-dot--d2" />
+              </div>
+              <span class="loading-label">Loading...</span>
+            </div>
           </div>
-        </div>
-
-        <!-- Header Actions -->
-        <div class="flex items-center gap-3">
-          <!-- Dark Mode Toggle Button -->
-          <button
-            @click="toggleTheme"
-            class="h-9 w-9 rounded-xl hover:bg-accent hover:text-accent-foreground flex items-center justify-center border border-border transition-colors cursor-pointer relative outline-none"
-          >
-            <Sun v-if="mode === 'dark'" class="h-4.5 w-4.5 text-amber-500 animate-pulse-slow" />
-            <Moon v-else class="h-4.5 w-4.5 text-indigo-500" />
-            <span class="sr-only">Toggle theme</span>
-          </button>
-
-          <button
-            class="h-9 w-9 rounded-xl hover:bg-accent hover:text-accent-foreground flex items-center justify-center border border-border transition-colors cursor-pointer relative"
-          >
-            <Bell class="h-4 w-4" />
-            <span
-              class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-background"
-            ></span>
-          </button>
-
-          <div class="h-px w-4 bg-border rotate-90 hidden sm:block"></div>
-
-          <div class="items-center gap-3 hidden sm:flex">
-            <span
-              class="text-xs font-semibold text-muted-foreground bg-accent/50 px-2.5 py-1 rounded-full uppercase tracking-wider"
-            >
-              {{ currentUser.role }}
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <!-- View Container -->
-      <main class="flex-1 p-4 md:p-8 bg-background/50 overflow-y-auto">
+        </Transition>
         <slot />
       </main>
     </div>
   </div>
 </template>
 
-<style>
-.animate-spin-slow {
-  animation: spin 8s linear infinite;
+<style scoped>
+/* ─── Root Layout ─── */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, 'Inter', sans-serif);
 }
-@keyframes spin {
+
+/* ─── Sidebar Wrapper ─── */
+.sidebar-wrapper {
+  width: 220px;
+  flex-shrink: 0;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-wrapper--collapsed {
+  width: 58px;
+}
+
+/* Mobile: sidebar hidden by default */
+@media (max-width: 767px) {
+  .sidebar-wrapper {
+    width: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    overflow: visible;
+  }
+
+  .sidebar-wrapper--mobile-open {
+    width: 220px;
+  }
+}
+
+/* ─── Mobile Backdrop ─── */
+.mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+}
+
+.backdrop-enter-active,
+.backdrop-leave-active {
+  transition: opacity 0.25s ease;
+}
+.backdrop-enter-from,
+.backdrop-leave-to {
+  opacity: 0;
+}
+
+/* ─── Main Area ─── */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  transition: none; /* Sidebar handles its own animation */
+}
+
+/* ─── Page Content ─── */
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  background: var(--background);
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding: 24px;
+  }
+}
+
+/* ─── Page Transition ─── */
+.page-enter-active {
+  animation: page-fade-in 0.18s ease-out;
+}
+.page-leave-active {
+  transition: opacity 0.12s ease-in;
+}
+.page-leave-to {
+  opacity: 0;
+}
+
+@keyframes page-fade-in {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Global Loading Overlay ─── */
+.page-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.page-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 40px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 0 1px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+/* Spinner: two concentric rotating rings */
+.loading-spinner {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.loading-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--primary);
+  animation: ring-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.loading-ring--delay {
+  inset: 6px;
+  border-top-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  animation-duration: 1.3s;
+  animation-direction: reverse;
+}
+
+@keyframes ring-spin {
+  to {
     transform: rotate(360deg);
+  }
+}
+
+/* Pulsing dots */
+.loading-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: dot-pulse 1.2s ease-in-out infinite;
+}
+
+.loading-dot--d1 {
+  animation-delay: 0.2s;
+  background: color-mix(in srgb, var(--primary) 70%, transparent);
+}
+
+.loading-dot--d2 {
+  animation-delay: 0.4s;
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+.loading-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+}
+
+/* Loading overlay transition */
+.loading-overlay-enter-active {
+  animation: loading-in 0.2s ease-out;
+}
+.loading-overlay-leave-active {
+  animation: loading-out 0.18s ease-in forwards;
+}
+
+@keyframes loading-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 </style>

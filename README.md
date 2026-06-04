@@ -1,327 +1,286 @@
-# vue-template
+# 🚀 Antigravity Vue Template (Vben + Shadcn UI)
 
-Frontend template dùng Vue 3, Vite, TypeScript, Pinia, Vue Router, TanStack Vue Query,
-Tailwind CSS v4 và bộ UI theo phong cách shadcn-vue/Reka UI.
+Chào mừng bạn đến với Frontend Template dành cho các dự án Vue 3! 
+Template này kết hợp sự mạnh mẽ của **Vue 3, Vite, TypeScript** cùng với vẻ đẹp hiện đại của bộ UI **Shadcn-vue** và cấu trúc layout/typography lấy cảm hứng từ **Vben Admin**.
 
-Tài liệu này dành cho thành viên mới join project để có thể chạy app, hiểu cấu trúc repo
-và nắm các quy ước chính trước khi bắt đầu code.
+Tài liệu này là cẩm nang toàn diện dành cho người mới, hướng dẫn từ cách cài đặt, tìm hiểu cấu trúc dự án cho đến cách tạo một trang mới hoàn chỉnh từ A-Z.
 
-## Yêu cầu môi trường
+---
 
-- Node.js: `^20.19.0` hoặc `>=22.12.0`
-- Bun: dùng để cài package và chạy script
-- IDE khuyến nghị: VS Code + extension `Vue (Official)`
+## 📑 Mục lục
 
-Kiểm tra nhanh:
+1. [Yêu cầu & Cài đặt](#1-yêu-cầu--cài-đặt)
+2. [Cấu trúc thư mục](#2-cấu-trúc-thư-mục)
+3. [Luồng hoạt động chính](#3-luồng-hoạt-động-chính)
+4. [🛠 Hướng dẫn chi tiết: Tạo một Page mới](#4--hướng-dẫn-chi-tiết-tạo-một-page-mới)
+    - [Bước 1: Tạo Page Component](#bước-1-tạo-page-component)
+    - [Bước 2: Đăng ký Route & Cấu hình Meta](#bước-2-đăng-ký-route--cấu-hình-meta)
+    - [Bước 3: Thêm vào Sidebar](#bước-3-thêm-vào-sidebar)
+    - [Bước 4: Tab Bar & Loading State](#bước-4-tab-bar--loading-state)
+5. [Gọi API & Quản lý State](#5-gọi-api--quản-lý-state)
+6. [UI, Styling & Typography](#6-ui-styling--typography)
+7. [Các lệnh thường dùng (Scripts)](#7-các-lệnh-thường-dùng-scripts)
 
-```sh
-node -v
-bun -v
-```
+---
 
-## Cài đặt và chạy project
+## 1. Yêu cầu & Cài đặt
 
-1. Cài dependencies:
+### Yêu cầu môi trường
+- **Node.js**: `^20.19.0` hoặc `>=22.12.0`
+- **Bun**: Dùng để quản lý package siêu tốc (`npm install -g bun`).
+- **IDE**: VS Code + Extension `Vue (Official)`.
 
-```sh
-bun install
-```
+### Cài đặt và chạy dự án
 
-2. Đảm bảo có file `.env` ở root project:
+1. **Cài dependencies:**
+   ```sh
+   bun install
+   ```
 
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
-```
+2. **Cấu hình môi trường:**
+   Tạo file `.env` ở thư mục gốc:
+   ```env
+   VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+   ```
 
-3. Chạy môi trường development:
+3. **Chạy dev server:**
+   ```sh
+   bun dev
+   ```
+   *Mở trình duyệt ở `http://localhost:5174/` (hoặc port Vite hiển thị).*
+   *(Mẹo: Màn login có nút "Quick Login" để vào thẳng dashboard test UI).*
 
-```sh
-bun dev
-```
+---
 
-Vite sẽ in ra URL local, thường là `http://localhost:5173`.
+## 2. Cấu trúc thư mục
 
-Nếu backend chưa chạy, màn login có nút `Quick Login (Demo Mode)` để vào giao diện demo
-mà không cần gọi API thật.
-
-## Scripts thường dùng
-
-| Lệnh | Mục đích |
-| --- | --- |
-| `bun dev` | Chạy Vite dev server |
-| `bun run make:module <name>` | Tạo cấu trúc thư mục cơ bản cho module mới |
-| `bun run build` | Type-check và build production |
-| `bun run build-only` | Chỉ build bằng Vite |
-| `bun run type-check` | Kiểm tra TypeScript bằng `vue-tsc` |
-| `bun lint` | Chạy oxlint và ESLint, có auto-fix |
-| `bun run format` | Format code trong `src/` bằng Prettier |
-| `bun run preview` | Preview bản build |
-
-Trước khi tạo PR, nên chạy:
-
-```sh
-bun lint
-bun run build
-```
-
-## Cấu trúc thư mục
+Dự án tổ chức theo dạng **Module-based** (chia theo tính năng) thay vì chia theo loại file (pages/components riêng biệt).
 
 ```txt
 src/
-  App.vue                 # Chọn layout theo route meta, hiển thị loading bar và toaster
-  main.ts                 # Khởi tạo Vue app, Pinia, router, Axios interceptors, Vue Query
-  style.css               # Tailwind v4, theme tokens, dark mode
-  assets/                 # CSS/assets dùng chung
-  components/
-    common/               # Component dùng chung nhưng không thuộc design system
-    layouts/              # BaseLayout, BlankLayout và partials
-    ui/                   # Component UI theo shadcn-vue/Reka UI
-  configs/                # Cấu hình Axios, Vue Query
-  constants/              # Constant dùng chung
-  lib/                    # Utility chung, ví dụ cn/class merge
-  modules/
-    auth/                 # Page, form, schema, query, store, type cho auth
-    dashboard/            # Module dashboard
-  pages/errors/           # Các trang lỗi dùng chung
-  router/                 # Route theo nhóm chức năng
-  services/               # Service gọi API
-  stores/                 # Pinia store global
-  types/                  # Type dùng chung và global declaration
+├── assets/           # Ảnh, font, CSS chung
+├── components/       
+│   ├── common/       # Component chung (không phải UI base)
+│   ├── layouts/      # BaseLayout (Sidebar+Header), BlankLayout
+│   └── ui/           # Các component UI cơ bản (Button, Table, Form...) - Shadcn style
+├── configs/          # Cấu hình Axios, Vue Query
+├── constants/        # Hằng số (Query keys, Role...)
+├── lib/              # Tiện ích (utils, class merge)
+├── modules/          # 📦 CÁC TÍNH NĂNG CHÍNH (auth, dashboard, users...)
+├── router/           # Định tuyến ứng dụng
+├── services/         # API HTTP Client chung
+├── stores/           # Pinia Stores global (App, Auth, Tabs, Sidebar)
+├── types/            # TypeScript interfaces/types chung
+├── App.vue           # Root component (quản lý layout, transition, loading)
+├── main.ts           # Điểm khởi chạy Vue
+└── style.css         # CSS toàn cục, Typography, Theme Variables
 ```
 
-Alias `@` trỏ tới `src`, nên ưu tiên import dạng:
+---
+
+## 3. Luồng hoạt động chính
+
+- **Layouts:** `App.vue` đọc `route.meta.layout` để bọc page. 
+  - `layout: 'base'` → Dùng layout có Sidebar, Header, Tab Bar.
+  - `layout: 'blank'` → Trang trống (Login, 404).
+- **Auth Guard:** Kiểm tra quyền trong `src/router/index.ts`. Dùng `guestOnly` (cho login), `bypassAuth` (cho trang public).
+- **Tab Bar:** Tự động bắt sự kiện chuyển route và thêm vào Tab Bar. State lưu tại `tabs.store.ts` và được persist (lưu) vào localStorage.
+
+---
+
+## 4. 🛠 Hướng dẫn chi tiết: Tạo một Page mới
+
+Sau đây là quy trình 4 bước chuẩn để tạo một trang hoàn toàn mới, ví dụ: trang **Reports**.
+
+### Bước 1: Tạo Page Component
+
+Bạn nên gom code liên quan đến một chức năng vào một thư mục trong `modules/`. 
+
+```vue
+<!-- src/modules/reports/pages/ReportsPage.vue -->
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useAppStore } from '@/stores/app.store'
+
+const appStore = useAppStore()
+
+onMounted(async () => {
+  // Bật global loading (sẽ hiện spinner và progress bar)
+  appStore.startPageLoading()
+  try {
+    // await callApi()
+  } finally {
+    appStore.finishPageLoading()
+  }
+})
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Tiêu đề trang dùng typography chuẩn -->
+    <div>
+      <h1 class="text-page-title">Reports</h1>
+      <p class="text-secondary mt-1">Báo cáo thống kê hệ thống.</p>
+    </div>
+
+    <div class="rounded-lg border bg-card p-6">
+      <p class="text-body">Nội dung trang báo cáo...</p>
+    </div>
+  </div>
+</template>
+```
+
+### Bước 2: Đăng ký Route & Cấu hình Meta
+
+Mở `src/router/dashboard.route.ts` và thêm trang của bạn:
 
 ```ts
-import { httpService } from '@/services/http.service'
+import type { RouteRecordRaw } from 'vue-router'
+
+export const dashboardRoutes: RouteRecordRaw[] = [
+  // ... các route khác
+  {
+    path: '/reports',
+    name: 'reports',
+    component: () => import('@/modules/reports/pages/ReportsPage.vue'),
+    meta: {
+      layout: 'base',    // 🔴 Bắt buộc để hiện Sidebar/Tab Bar
+      title: 'Reports',  // 🔴 Tên hiển thị trên Breadcrumb & Tab Bar
+      affix: false,      // (Tuỳ chọn) true = Ghim tab, không cho phép tắt
+    },
+  },
+]
 ```
 
-## Luồng khởi động app
+### Bước 3: Thêm vào Sidebar
 
-File `src/main.ts` là entry point:
+Mở `src/components/layouts/partials/sidebar/sidebar-data.ts`.
 
-- Tạo Vue app từ `App.vue`
-- Tạo Pinia và bật `pinia-plugin-persistedstate`
-- Cài Axios interceptors bằng `setupAxiosInterceptors(pinia)`
-- Cài Vue Router
-- Cài TanStack Vue Query bằng `setupVueQuery(app)`
-- Mount app vào `#app`
+```ts
+import { BarChart3 } from 'lucide-vue-next' // 1. Import icon từ lucide
 
-`App.vue` đọc `route.meta.layout` để chọn layout:
+export const sidebarData: SidebarGroup[] = [
+  {
+    groupKey: 'system',
+    groupLabel: 'System',
+    items: [
+      // 2. Thêm item vào nhóm mong muốn
+      {
+        key: 'reports',          // ID duy nhất
+        title: 'Reports',        // Label trên sidebar
+        path: '/reports',        // Đường dẫn tương ứng route
+        icon: BarChart3,         // Icon
+        badge: 3,                // (Tuỳ chọn) Hiện chấm đỏ báo hiệu
+      },
+    ]
+  }
+]
+```
 
-- `layout: 'base'`: dùng layout chính có sidebar/header
-- `layout: 'blank'`: dùng layout trống cho login/register/error page
-
-## Routing và auth guard
-
-Routes được tách theo file trong `src/router/`:
-
-- `auth.route.ts`: login/register
-- `dashboard.route.ts`: dashboard
-- `error.route.ts`: trang lỗi và 404
-- `index.ts`: gom routes và khai báo guard
-
-Guard trong `src/router/index.ts` đang dùng các meta sau:
-
-| Meta | Ý nghĩa |
-| --- | --- |
-| `guestOnly: true` | Chỉ cho user chưa đăng nhập vào, ví dụ login/register |
-| `bypassAuth: true` | Bỏ qua kiểm tra đăng nhập, ví dụ error page |
-| `layout: 'base' \| 'blank'` | Chọn layout render page |
-
-Quy tắc hiện tại:
-
-- Đã đăng nhập mà vào route `guestOnly` thì redirect về `dashboard`
-- Chưa đăng nhập mà vào route private thì redirect về `login`
-- Route có `bypassAuth` không cần đăng nhập
-- Mỗi lần chuyển trang sẽ bật `appStore.startPageLoading()` và tắt sau `afterEach`
-
-Khi thêm page mới, tạo route theo mẫu:
-
+*Nếu muốn làm menu cha chứa các sub-menu:*
 ```ts
 {
-  path: '/users',
-  name: 'users',
-  component: () => import('@/modules/users/pages/UserListPage.vue'),
-  meta: {
-    layout: 'base',
-  },
+  key: 'reports',
+  title: 'Reports',
+  icon: BarChart3,
+  children: [
+    { key: 'reports-sales', title: 'Sales', path: '/reports/sales' },
+    { key: 'reports-ads', title: 'Ads', path: '/reports/ads' },
+  ]
 }
 ```
 
-## Gọi API
+### Bước 4: Tab Bar & Loading State
 
-API client nằm ở:
+- **Tab Bar:** Bạn **không cần** làm gì thêm! Tab bar sẽ tự động mở tab mới, tự lưu lịch sử và hỗ trợ chuột phải (Đóng tab khác, Đóng tất cả...) dựa vào Route `meta.title` và `path`.
+- **Loading:** Như đã làm ở Bước 1, luôn bọc logic `callApi` bằng `appStore.startPageLoading()` và `appStore.finishPageLoading()` ở khối `finally`. Hệ thống sẽ tự hiển thị hiệu ứng Loading mượt mà.
 
-- `src/configs/axios.config.ts`
-- `src/services/http.service.ts`
+---
 
-`apiClient` dùng `VITE_API_BASE_URL` làm `baseURL`, timeout `15s` và tự set header:
+## 5. Gọi API & Quản lý State
 
-- `Accept: application/json`
-- `X-Locale` theo `appStore.lang`
-- `Authorization: Bearer <accessToken>` nếu đã đăng nhập
-- `Content-Type: application/json` khi request có body
+### HTTP Service (Axios)
+Cấu hình tại `src/configs/axios.config.ts`. Đã tự động xử lý truyền `Authorization Bearer`, intercept refresh token (401).
 
-Khi API trả `401`, interceptor sẽ gọi `/auth/refresh`, cập nhật session nếu refresh thành công,
-sau đó retry request ban đầu. Nếu refresh thất bại, session sẽ bị clear.
-
-Nên tạo service riêng cho từng domain/module:
-
+Nên viết Service riêng cho từng Module:
 ```ts
+// src/modules/reports/services/report.service.ts
 import { httpService } from '@/services/http.service'
 
-export const USER_URL = {
-  LIST: '/users',
-}
-
-export class UserService {
-  static async list() {
-    return httpService.get<User[]>(USER_URL.LIST)
+export class ReportService {
+  static async getSales() {
+    return httpService.get('/reports/sales') // Tự unwrap response.data.metadata
   }
 }
 ```
 
-`httpService.get/post/put/patch/delete` mặc định unwrap `response.data.metadata`.
-Nếu cần toàn bộ response gồm `message`, `status_code`, `path`, dùng các hàm
-`getApiResponse/postApiResponse/...`.
-
-## Server state với Vue Query
-
-Vue Query được cấu hình tại `src/configs/vue-query.config.ts`:
-
-- `staleTime`: 1 phút
-- `gcTime`: 5 phút
-- `retry`: 1 lần
-- `refetchOnWindowFocus`: `false`
-
-Quy ước:
-
-- Query/mutation của module đặt trong `src/modules/<module>/queries/`
-- Query key dùng constant trong `src/constants/query-keys.ts` nếu key được dùng lại
-- Gọi API thông qua service, không gọi `apiClient` trực tiếp trong component
-
-Ví dụ mutation hiện có:
+### Vue Query (Server State)
+Không lưu dữ liệu API vào Pinia! Hãy dùng **TanStack Vue Query** (đã cấu hình sẵn). Đặt file ở thư mục `queries/` của module.
 
 ```ts
-export const useLoginMutation = () => {
-  return useMutation({
-    mutationFn: (values: LoginSchema) => AuthService.login(values),
+import { useQuery } from '@tanstack/vue-query'
+import { ReportService } from '../services/report.service'
+
+export const useSalesQuery = () => {
+  return useQuery({
+    queryKey: ['REPORTS_SALES'],
+    queryFn: () => ReportService.getSales(),
   })
 }
 ```
 
-## State management với Pinia
+### Pinia (Client State)
+Chỉ dùng cho state cục bộ toàn app (UI state, Session, Settings).
+- `useAppStore`: Quản lý loading, language.
+- `useAuthStore`: Quản lý Token, User (Được lưu tự động vào LocalStorage).
+- `useTabsStore`: Quản lý Tab Bar.
+- `useSidebarStore`: Quản lý ẩn/hiện Sidebar.
 
-Store global nằm trong `src/stores/`, store theo module nằm trong module tương ứng.
+---
 
-Hiện có:
+## 6. UI, Styling & Typography
 
-- `useAppStore`: ngôn ngữ hiện tại và loading khi chuyển trang
-- `useAuthStore`: access token và user, có `persist: true`
-- `useSidebarStore`, `useNotificationStore`: state UI dùng chung
+### CSS & Tailwind
+Project dùng **Tailwind CSS v4** (`src/style.css`). Dark mode được cấu hình sẵn với hệ màu `teal/navy` (Vben style).
 
-Quy ước:
+### Typography Classes
+Hệ thống chữ được chuẩn hoá. Hãy dùng các class sau thay vì tự style font:
 
-- State đăng nhập dùng `useAuthStore`
-- State gọi API nên để Vue Query quản lý, không đưa toàn bộ server response vào Pinia
-- Pinia phù hợp cho state UI, session, filter/global setting cần chia sẻ nhiều nơi
+| Class | Ứng dụng | CSS Tương đương |
+|-------|----------|------------------|
+| `.text-page-title` | Tiêu đề trang chính (h1) | Cỡ lớn, in đậm, tracking hẹp |
+| `.text-section` | Tiêu đề phân mục, thẻ Card | Cỡ vừa, in đậm |
+| `.text-body` | Văn bản chính, đoạn văn | Cỡ 14px chuẩn, line-height dễ đọc |
+| `.text-secondary` | Mô tả phụ, subtext | Nhỏ hơn, màu xám (`muted-foreground`) |
+| `.text-caption` | Nhãn nhỏ, metadata | Rất nhỏ, màu xám |
+| `.text-overline` | Status, tag (ACTIVE...) | Chữ in hoa nhỏ, khoảng cách chữ rộng |
+| `.text-data` | Hiển thị Số liệu, ID | Căn lề số thẳng hàng (`tabular-nums`) |
 
-## Form và validation
+### Shadcn/Reka UI
+Các components tái sử dụng nằm ở `src/components/ui/` (Button, Input, Table...). 
+Nên dùng chúng để đảm bảo tính đồng nhất.
 
-Form auth hiện dùng:
-
-- `vee-validate`
-- `zod`
-- `@vee-validate/zod`
-
-Schema đặt trong `src/modules/<module>/schemas/`.
-Type của form nên infer từ schema:
-
-```ts
-import z from 'zod'
-
-export const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(6, 'Password is required'),
-})
-
-export type LoginSchema = z.infer<typeof loginSchema>
+Ví dụ Button:
+```vue
+<Button variant="default" size="sm">Lưu lại</Button>
+<Button variant="outline">Huỷ</Button>
+<Button variant="destructive">Xoá</Button>
 ```
 
-## UI và styling
+---
 
-- Tailwind CSS v4 được import trong `src/style.css`
-- Theme token dùng CSS variables trong `:root` và `.dark`
-- Component UI dùng chung đặt trong `src/components/ui/`
-- Component layout đặt trong `src/components/layouts/`
-- Icon đang dùng `lucide-vue-next`
-- Toast dùng `vue-sonner`
+## 7. Các lệnh thường dùng (Scripts)
 
-Khi thêm component:
+| Lệnh | Mục đích |
+| --- | --- |
+| `bun dev` | Chạy dev server |
+| `bun run make:module <name>` | Tự động tạo thư mục cơ bản cho module mới (pages, queries, services...) |
+| `bun run build` | Build ứng dụng ra thư mục `dist` (đã bao gồm type-check) |
+| `bun lint` | Chạy bộ linter kiểm tra lỗi code và auto-fix |
+| `bun run format` | Chạy Prettier format lại toàn bộ code |
 
-- Component dùng riêng cho một module đặt trong `src/modules/<module>/components/`
-- Component dùng lại toàn app đặt trong `src/components/common/`
-- Component design system/base UI đặt trong `src/components/ui/`
+> **Lưu ý trước khi commit/PR:** Hãy luôn chạy `bun lint` và `bun run build` để đảm bảo code không có lỗi TypeScript hay ESLint.
 
-## Quy ước code
+---
 
-- Dùng TypeScript trong `<script setup lang="ts">`
-- Ưu tiên import bằng alias `@/...`
-- Tên component Vue dùng `PascalCase.vue`
-- Store đặt tên dạng `*.store.ts`
-- Route đặt tên dạng `*.route.ts`
-- Service đặt tên dạng `*.service.ts`
-- Schema đặt tên dạng `*.schema.ts`
-- Không gọi API trực tiếp trong page/component nếu có thể đưa qua service và query
-- Không lưu secret thật vào `.env` trong repo
-
-Prettier hiện cấu hình:
-
-- Không dùng semicolon
-- Dùng single quote
-- `printWidth: 100`
-
-## Checklist khi thêm một module mới
-
-Tạo cấu trúc module bằng lệnh:
-
-```sh
-bun run make:module users
-```
-
-Lệnh trên sẽ tạo:
-
-```txt
-src/modules/users/
-  components/
-  pages/
-  queries/
-  schemas/
-  stores/
-  types/
-```
-
-Có thể chạy thử mà không tạo file bằng:
-
-```sh
-bun run make:module users --dry-run
-```
-
-Các bước thường làm:
-
-1. Chạy `bun run make:module users`
-2. Tạo page trong `src/modules/users/pages/`
-3. Tạo service nếu cần gọi API
-4. Tạo query/mutation trong `src/modules/users/queries/`
-5. Tạo schema nếu có form
-6. Tạo route file hoặc thêm route vào nhóm phù hợp trong `src/router/`
-7. Chọn `meta.layout` và auth meta đúng
-8. Chạy `bun lint` và `bun run build`
-
-## Một số lỗi thường gặp
-
-- Không gọi được API: kiểm tra `VITE_API_BASE_URL` trong `.env` và backend đã chạy chưa
-- Bị redirect về login: kiểm tra `useAuthStore.accessToken` hoặc route có cần `bypassAuth` không
-- Page không có layout đúng: kiểm tra `route.meta.layout`
-- Import `@/...` không resolve: kiểm tra file nằm trong `src` và alias trong `vite.config.ts`
-- Type của `.vue` bị lỗi trong IDE: dùng extension `Vue (Official)` và tắt Vetur nếu có
+🎉 **Chúc bạn code vui vẻ!** Hãy luôn tham khảo code mẫu trong các modules có sẵn như `auth` hoặc `dashboard` nếu cần thêm gợi ý.
