@@ -19,8 +19,12 @@ const isCollapsed = computed(() => sidebarStore.isCollapsed)
 const isPageLoading = computed(() => appStore.isPageLoading)
 const isMobileOpen = ref(false)
 
-const closeMobile = () => { isMobileOpen.value = false }
-const openMobile = () => { isMobileOpen.value = true }
+const closeMobile = () => {
+  isMobileOpen.value = false
+}
+const openMobile = () => {
+  isMobileOpen.value = true
+}
 
 // Auto-open tab whenever route changes
 watch(
@@ -42,14 +46,9 @@ watch(
 
 <template>
   <div class="app-layout" :class="{ dark: mode === 'dark' }">
-
     <!-- Mobile Backdrop -->
     <Transition name="backdrop">
-      <div
-        v-if="isMobileOpen"
-        class="mobile-backdrop"
-        @click="closeMobile"
-      />
+      <div v-if="isMobileOpen" class="mobile-backdrop" @click="closeMobile" />
     </Transition>
 
     <!-- Sidebar -->
@@ -257,7 +256,9 @@ watch(
 }
 
 @keyframes ring-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Pulsing dots */
@@ -286,8 +287,15 @@ watch(
 }
 
 @keyframes dot-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.5); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
 }
 
 .loading-label {
@@ -306,12 +314,20 @@ watch(
 }
 
 @keyframes loading-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes loading-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 </style>
