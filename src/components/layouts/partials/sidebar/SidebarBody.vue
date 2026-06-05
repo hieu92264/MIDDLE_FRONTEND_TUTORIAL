@@ -184,7 +184,7 @@ initExpandedState()
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--sidebar-muted-foreground);
   padding: 12px 16px 4px;
   user-select: none;
 }
@@ -275,7 +275,7 @@ initExpandedState()
 /* ─── Chevron ─── */
 .sidebar-chevron {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--sidebar-muted-foreground);
   transition: transform 0.25s ease;
 }
 
@@ -301,7 +301,7 @@ initExpandedState()
   cursor: pointer;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
+  color: color-mix(in srgb, var(--sidebar-foreground) 70%, transparent);
   font-size: 13px;
   font-weight: 400;
   text-align: left;
@@ -312,7 +312,7 @@ initExpandedState()
 
 .sidebar-subitem:hover {
   background: var(--sidebar-accent);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--sidebar-foreground);
 }
 
 .sidebar-subitem--active {
@@ -331,7 +331,7 @@ initExpandedState()
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--sidebar-muted-foreground);
   transition: all 0.15s ease;
 }
 

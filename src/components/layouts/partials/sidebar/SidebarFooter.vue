@@ -161,7 +161,7 @@ const handleLogout = async () => {
 .sidebar-user-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--sidebar-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,7 +169,7 @@ const handleLogout = async () => {
 
 .sidebar-user-email {
   font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--sidebar-muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -177,7 +177,7 @@ const handleLogout = async () => {
 
 .sidebar-user-chevron {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--sidebar-muted-foreground);
 }
 
 /* Text transition */

@@ -64,12 +64,8 @@ const isCollapsed = computed(() => sidebarStore.isCollapsed)
 .sidebar-logo-text {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--sidebar-foreground);
   letter-spacing: -0.3px;
-  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.75) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* Transition for text show/hide */

@@ -164,8 +164,9 @@ watch(
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100vh;
-  transition: none; /* Sidebar handles its own animation */
+  height: 100vh;       /* cố định chiều cao = viewport */
+  overflow: hidden;    /* chặn main-area tự scroll, chỉ .page-content scroll */
+  transition: none;
 }
 
 /* ─── Page Content ─── */
