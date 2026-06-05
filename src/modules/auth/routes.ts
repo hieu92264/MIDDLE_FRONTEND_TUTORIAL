@@ -19,12 +19,4 @@ export const authRoutes: RouteRecordRaw[] = [
       layout: 'blank',
     },
   },
-  {
-    path: '/user',
-    name: 'user',
-    component: () => import('@/modules/auth/pages/UserPage.vue'),
-    meta: {
-      layout: 'base',
-    },
-  },
 ]

@@ -12,30 +12,12 @@ export const dashboardRoutes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/users',
-    name: 'users',
-    component: () => import('@/modules/users/pages/UsersPage.vue'),
-    meta: {
-      layout: 'base',
-      title: 'Users',
-    },
-  },
-  {
     path: '/analytics',
     name: 'analytics',
     component: () => import('@/modules/dashboard/pages/DashboardPage.vue'), // placeholder
     meta: {
       layout: 'base',
       title: 'Analytics',
-    },
-  },
-  {
-    path: '/organizations',
-    name: 'organizations',
-    component: () => import('@/modules/dashboard/pages/DashboardPage.vue'), // placeholder
-    meta: {
-      layout: 'base',
-      title: 'Organizations',
     },
   },
   {

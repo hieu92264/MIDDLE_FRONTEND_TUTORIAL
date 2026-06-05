@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/vue-query'
-import { AuthService } from '@/services/auth.service'
+import { AuthService } from '@/modules/auth/api/auth.api'
 import type { LoginSchema } from '@/modules/auth/schemas'
 
 export const useLoginMutation = () => {

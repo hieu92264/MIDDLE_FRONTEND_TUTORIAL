@@ -10,7 +10,7 @@ Bộ `DataTable` được xây dựng dựa trên:
 Trang demo hiện tại:
 
 ```txt
-src/modules/users/pages/UsersPage.vue
+src/modules/iam/users/pages/UserListPage.vue
 ```
 
 ---
@@ -1786,7 +1786,7 @@ Nên học theo thứ tự sau:
 1. Mở file demo:
 
 ```txt
-src/modules/users/pages/UsersPage.vue
+src/modules/iam/users/pages/UserListPage.vue
 ```
 
 2. Xem interface của record, ví dụ `User`.

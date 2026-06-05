@@ -87,14 +87,11 @@ onMounted(async () => {
 
 ## 2. Đăng ký Route
 
-Mở file `src/router/dashboard.route.ts` và thêm route mới vào mảng `dashboardRoutes`:
+Mở file `src/modules/reports/routes.ts` và khai báo route của module:
 
 ```ts
-// src/router/dashboard.route.ts
-export const dashboardRoutes: RouteRecordRaw[] = [
-  // ... routes hiện tại ...
-
-  // ✅ Thêm route mới
+// src/modules/reports/routes.ts
+export const reportsRoutes: RouteRecordRaw[] = [
   {
     path: '/reports',
     name: 'reports',
@@ -106,6 +103,8 @@ export const dashboardRoutes: RouteRecordRaw[] = [
   },
 ]
 ```
+
+Sau đó import `reportsRoutes` vào `src/router/index.ts`.
 
 > **Lưu ý quan trọng:** `layout: 'base'` là bắt buộc để page hiển thị trong layout có sidebar, header, tab bar. Nếu bỏ qua, page sẽ dùng `BlankLayout` (trắng hoàn toàn).
 
@@ -300,7 +299,7 @@ Có **2 cách** để pin tab:
 **Cách A — Qua route `meta`** _(khuyên dùng)_:
 
 ```ts
-// dashboard.route.ts
+// src/modules/dashboard/routes.ts
 meta: { layout: 'base', title: 'Dashboard', affix: true }
 ```
 
@@ -435,7 +434,7 @@ onMounted(async () => {
 ### Bước 2 — Đăng ký route
 
 ```ts
-// src/router/dashboard.route.ts — thêm vào cuối mảng
+// src/modules/reports/routes.ts
 {
   path: '/reports',
   name: 'reports',
@@ -476,7 +475,7 @@ import { BarChart3 } from 'lucide-vue-next' // thêm import
 
 ```
 ☐ 1. Tạo file page tại src/modules/<module>/pages/<Name>Page.vue
-☐ 2. Thêm route vào src/router/dashboard.route.ts
+☐ 2. Thêm route vào src/modules/<module>/routes.ts và import trong src/router/index.ts
        - path, name, component (lazy import)
        - meta.layout = 'base'
        - meta.title = 'Tên trang'

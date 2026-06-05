@@ -2,14 +2,14 @@ import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-const moduleFolders = ['components', 'pages', 'queries', 'schemas', 'stores', 'types']
+const moduleFolders = ['api', 'components', 'pages', 'queries', 'schemas', 'stores', 'types']
 
 const [, , moduleName, ...flags] = process.argv
 const dryRun = flags.includes('--dry-run')
 
 function printUsage() {
   console.log('Usage: bun run make:module <module-name> [--dry-run]')
-  console.log('Example: bun run make:module auth')
+  console.log('Example: bun run make:module reports')
   console.log('Module name must be lowercase kebab-case, for example: auth, users, user-profile')
 }
 
@@ -25,6 +25,7 @@ if (!/^[a-z][a-z0-9-]*$/.test(moduleName)) {
 }
 
 const moduleRoot = resolve(process.cwd(), 'src', 'modules', moduleName)
+const routesPath = join(moduleRoot, 'routes.ts')
 
 console.log(`${dryRun ? '[dry-run] ' : ''}Creating module: ${moduleName}`)
 
@@ -44,6 +45,16 @@ for (const folder of moduleFolders) {
   }
 
   console.log(`- ${folderPath}`)
+}
+
+if (dryRun) {
+  console.log(`- ${routesPath}`)
+} else if (!existsSync(routesPath)) {
+  await writeFile(
+    routesPath,
+    `import type { RouteRecordRaw } from 'vue-router'\n\nexport const ${moduleName.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase())}Routes: RouteRecordRaw[] = []\n`,
+  )
+  console.log(`- ${routesPath}`)
 }
 
 console.log(`${dryRun ? '[dry-run] ' : ''}Done.`)

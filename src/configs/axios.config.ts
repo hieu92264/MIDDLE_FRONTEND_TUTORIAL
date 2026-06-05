@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
 import type { AuthPayload } from '@/modules/auth/types/auth.type'
-import { AuthService } from '@/services/auth.service'
+import { AuthService } from '@/modules/auth/api/auth.api'
 import { useAppStore } from '@/stores/app.store'
 import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import type { Pinia } from 'pinia'

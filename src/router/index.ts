@@ -1,11 +1,19 @@
-import { authRoutes } from '@/router/auth.route'
-import { dashboardRoutes } from '@/router/dashboard.route'
+import { authRoutes } from '@/modules/auth/routes'
+import { dashboardRoutes } from '@/modules/dashboard/routes'
+import { iamRoutes } from '@/modules/iam/routes'
+import { organizationRoutes } from '@/modules/organization/routes'
 import { errorRoutes } from '@/router/error.route'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { createRouter, createWebHistory } from 'vue-router'
 
-const routes = [...authRoutes, ...dashboardRoutes, ...errorRoutes]
+const routes = [
+  ...authRoutes,
+  ...dashboardRoutes,
+  ...iamRoutes,
+  ...organizationRoutes,
+  ...errorRoutes,
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,7 +35,9 @@ router.beforeEach((to, from, next) => {
   }
 
   if (!to.meta.guestOnly && !to.meta.bypassAuth && !isAuthenticated) {
-    // If not logged in and trying to access private pages (dashboard), redirect to login
+    // If not logged in and try
+    //
+    // ing to access private pages (dashboard), redirect to login
     return next({ name: 'login' })
   }
 

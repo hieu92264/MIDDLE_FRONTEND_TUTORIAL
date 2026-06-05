@@ -132,13 +132,12 @@ onMounted(async () => {
 
 ### Bước 2: Đăng ký Route & Cấu hình Meta
 
-Mở `src/router/dashboard.route.ts` và thêm trang của bạn:
+Mở `src/modules/reports/routes.ts` và khai báo route của module:
 
 ```ts
 import type { RouteRecordRaw } from 'vue-router'
 
-export const dashboardRoutes: RouteRecordRaw[] = [
-  // ... các route khác
+export const reportsRoutes: RouteRecordRaw[] = [
   {
     path: '/reports',
     name: 'reports',
@@ -151,6 +150,8 @@ export const dashboardRoutes: RouteRecordRaw[] = [
   },
 ]
 ```
+
+Sau đó import `reportsRoutes` vào `src/router/index.ts`.
 
 ### Bước 3: Thêm vào Sidebar
 
@@ -202,12 +203,12 @@ export const sidebarData: SidebarGroup[] = [
 ### HTTP Service (Axios)
 Cấu hình tại `src/configs/axios.config.ts`. Đã tự động xử lý truyền `Authorization Bearer`, intercept refresh token (401).
 
-Nên viết Service riêng cho từng Module:
+Nên đặt API riêng trong từng module:
 ```ts
-// src/modules/reports/services/report.service.ts
+// src/modules/reports/api/report.api.ts
 import { httpService } from '@/services/http.service'
 
-export class ReportService {
+export class ReportApi {
   static async getSales() {
     return httpService.get('/reports/sales') // Tự unwrap response.data.metadata
   }
@@ -219,12 +220,12 @@ Không lưu dữ liệu API vào Pinia! Hãy dùng **TanStack Vue Query** (đã 
 
 ```ts
 import { useQuery } from '@tanstack/vue-query'
-import { ReportService } from '../services/report.service'
+import { ReportApi } from '../api/report.api'
 
 export const useSalesQuery = () => {
   return useQuery({
     queryKey: ['REPORTS_SALES'],
-    queryFn: () => ReportService.getSales(),
+    queryFn: () => ReportApi.getSales(),
   })
 }
 ```
@@ -274,7 +275,7 @@ Ví dụ Button:
 | Lệnh | Mục đích |
 | --- | --- |
 | `bun dev` | Chạy dev server |
-| `bun run make:module <name>` | Tự động tạo thư mục cơ bản cho module mới (pages, queries, services...) |
+| `bun run make:module <name>` | Tự động tạo cấu trúc module mới (api, pages, queries, routes...) |
 | `bun run build` | Build ứng dụng ra thư mục `dist` (đã bao gồm type-check) |
 | `bun lint` | Chạy bộ linter kiểm tra lỗi code và auto-fix |
 | `bun run format` | Chạy Prettier format lại toàn bộ code |
