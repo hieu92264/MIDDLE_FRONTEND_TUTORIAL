@@ -63,8 +63,78 @@ const reloadPage = () => {
   }, 800)
 }
 
-const toggleTheme = () => {
-  mode.value = mode.value === 'dark' ? 'light' : 'dark'
+const toggleTheme = (event: MouseEvent) => {
+  const isDark = mode.value === 'dark'
+  const newMode = isDark ? 'light' : 'dark'
+
+  // View Transition API — circular ripple from click position
+  if (!document.startViewTransition) {
+    mode.value = newMode
+    return
+  }
+
+  const x = event.clientX
+  const y = event.clientY
+  const endRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y),
+  )
+
+  // Set BEFORE startViewTransition để CSS z-index được áp dụng ngay
+  document.documentElement.dataset.themeTransition = newMode
+  // Tắt CSS color transitions (tránh conflict với snapshot)
+  document.documentElement.classList.add('theme-transitioning')
+
+  // Sync callback (không async/rAF) — tránh lag.
+  // Toggle .dark trực tiếp lên html NGAY BÊN TRONG callback để browser
+  // compute CSS custom properties đúng trước khi chụp snapshot "after".
+  const transition = document.startViewTransition(() => {
+    document.documentElement.classList.toggle('dark', newMode === 'dark')
+    mode.value = newMode
+  })
+
+
+  transition.ready.then(() => {
+    if (newMode === 'dark') {
+      // Light → Dark: layer cũ (sáng) thu nhỏ lại — màn đêm nuốt chướng 🌙
+      // fill: 'forwards' giữ clip-path=0 đến cuối, tránh reset về full-screen trước khi pseudo-element bị xóa
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+            `circle(0px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 500,
+          easing: 'ease-in',
+          fill: 'forwards',
+          pseudoElement: '::view-transition-old(root)',
+        },
+      )
+    } else {
+      // Dark → Light: layer mới (sáng) mở rộng ra — bình minh ló dạng ☀️
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 450,
+          easing: 'ease-out',
+          fill: 'forwards',
+          pseudoElement: '::view-transition-new(root)',
+        },
+      )
+    }
+  })
+
+  transition.finished.then(() => {
+    document.documentElement.classList.remove('theme-transitioning')
+    delete document.documentElement.dataset.themeTransition
+  })
 }
 
 const toggleFullscreen = () => {
@@ -138,12 +208,14 @@ const toggleFullscreen = () => {
 
       <!-- Theme Toggle -->
       <button
-        class="header-icon-btn"
-        @click="toggleTheme"
+        class="header-icon-btn theme-toggle-btn"
+        @click="toggleTheme($event)"
         :title="mode === 'dark' ? 'Switch to light' : 'Switch to dark'"
       >
-        <Sun v-if="mode === 'dark'" :size="16" class="text-amber-400" />
-        <Moon v-else :size="16" class="text-indigo-400" />
+        <Transition name="theme-icon" mode="out-in">
+          <Sun v-if="mode === 'dark'" :size="16" class="text-amber-400" key="sun" />
+          <Moon v-else :size="16" class="text-indigo-400" key="moon" />
+        </Transition>
       </button>
 
       <!-- Fullscreen -->
@@ -358,5 +430,19 @@ const toggleFullscreen = () => {
 .header-icon-btn--reloading {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+/* ─── Theme toggle icon transition ─── */
+.theme-icon-enter-active,
+.theme-icon-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.theme-icon-enter-from {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
 }
 </style>

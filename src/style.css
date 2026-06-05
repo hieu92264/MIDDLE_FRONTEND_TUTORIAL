@@ -393,3 +393,69 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(128, 128, 128, 0.5);
 }
+
+/* =========================================
+   View Transition API — Theme Ripple
+   ========================================= */
+
+/* Tắt default cross-fade, chỉ dùng ripple animation của chúng ta */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* New layer luôn ở trên để ripple expand hoạt động đúng cả 2 chiều */
+::view-transition-new(root) {
+  z-index: 9999;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* Light → Dark: old (sáng) phải ở trên để shrink animation thấy được */
+[data-theme-transition="dark"]::view-transition-old(root) {
+  z-index: 9999;
+}
+[data-theme-transition="dark"]::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* Dark → Light: new (sáng) ở trên để expand animation thấy được */
+[data-theme-transition="light"]::view-transition-new(root) {
+  z-index: 9999;
+}
+[data-theme-transition="light"]::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* Màu nền và chữ transition mượt khi CSS vars thay đổi */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.2s ease,
+    box-shadow 0.35s ease,
+    fill 0.2s ease,
+    stroke 0.2s ease;
+}
+
+/* Khi View Transition đang chạy: tắt CSS transitions để tránh flash/conflict */
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: none !important;
+}
+
+/* Ngoại lệ: những thứ không nên transition màu (animations, transforms...) */
+*[class*="animate-"],
+*[class*="loading-"],
+*[class*="icon-spin"],
+.page-enter-active,
+.page-leave-active,
+.backdrop-enter-active,
+.backdrop-leave-active {
+  transition: none !important;
+}
