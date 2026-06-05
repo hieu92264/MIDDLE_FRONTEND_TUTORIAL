@@ -137,23 +137,27 @@ const mergedColumns = computed<ColumnDef<TData, TValue>[]>(() => {
     id: 'select',
     size: 48,
     header: ({ table }: HeaderContext<TData, TValue>) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(getCheckboxValue(value)),
-        onClick: (event: MouseEvent) => event.stopPropagation(),
-        ariaLabel: 'Select all',
-      }),
+      h('div', { class: 'flex items-center justify-center' }, [
+        h(Checkbox, {
+          modelValue:
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate'),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+            table.toggleAllPageRowsSelected(getCheckboxValue(value)),
+          onClick: (event: MouseEvent) => event.stopPropagation(),
+          ariaLabel: 'Select all',
+        }),
+      ]),
     cell: ({ row }: CellContext<TData, TValue>) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          row.toggleSelected(getCheckboxValue(value)),
-        onClick: (event: MouseEvent) => event.stopPropagation(),
-        ariaLabel: 'Select row',
-      }),
+      h('div', { class: 'flex items-center justify-center' }, [
+        h(Checkbox, {
+          modelValue: row.getIsSelected(),
+          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+            row.toggleSelected(getCheckboxValue(value)),
+          onClick: (event: MouseEvent) => event.stopPropagation(),
+          ariaLabel: 'Select row',
+        }),
+      ]),
     enableSorting: false,
     enableHiding: false,
     enableResizing: false,
