@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { useTabsStore } from '@/stores/tabs.store'
-import { sidebarData, type SidebarItem } from './sidebar-data'
+import { sidebarData, type SidebarItem, type SidebarGroup } from './sidebar-data'
 import { ChevronRight } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -24,7 +24,7 @@ const toggleExpand = (key: string) => {
 
 const isExpanded = (key: string) => expandedKeys.value.has(key)
 
-// Check if a path is active (exact or prefix for parent)
+// Check if a path is active
 const isActive = (path?: string) => {
   if (!path) return false
   return route.path === path
@@ -42,7 +42,6 @@ const handleItemClick = (item: SidebarItem) => {
     }
     return
   }
-  // Open tab
   if (item.path) {
     tabsStore.openTab({
       key: item.path,
@@ -51,6 +50,36 @@ const handleItemClick = (item: SidebarItem) => {
       affix: item.affix,
     })
   }
+}
+
+// Build flat ordered index for numbering: group-level index + child sub-index
+// Returns a map: itemKey → { groupIndex, itemIndex, childIndex? }
+const buildNumberMap = () => {
+  const map = new Map<string, { g: number; i: number; ci?: number }>()
+  let gIdx = 0
+  sidebarData.forEach((group) => {
+    gIdx++
+    group.items.forEach((item, iIdx) => {
+      map.set(item.key, { g: gIdx, i: iIdx + 1 })
+      item.children?.forEach((child, cIdx) => {
+        map.set(child.key, { g: gIdx, i: iIdx + 1, ci: cIdx + 1 })
+      })
+    })
+  })
+  return map
+}
+const numberMap = buildNumberMap()
+
+const getParentNumber = (item: SidebarItem) => {
+  const n = numberMap.get(item.key)
+  if (!n) return ''
+  return `${n.g}.`
+}
+
+const getChildNumber = (item: SidebarItem) => {
+  const n = numberMap.get(item.key)
+  if (!n || n.ci === undefined) return ''
+  return `${n.g}.${n.ci}`
 }
 
 // Initialize expanded state for active parent menus
@@ -93,10 +122,11 @@ initExpandedState()
             :title="isCollapsed ? item.title : undefined"
           >
             <span class="sidebar-item-icon">
-              <component :is="item.icon" v-if="item.icon" :size="18" />
+              <component :is="item.icon" v-if="item.icon" :size="17" />
             </span>
             <Transition name="sidebar-text">
               <span v-if="!isCollapsed" class="sidebar-item-label">
+                <span v-if="!isCollapsed" class="sidebar-item-num">{{ getParentNumber(item) }}</span>
                 {{ item.title }}
                 <span v-if="item.badge" class="sidebar-badge">{{ item.badge }}</span>
               </span>
@@ -104,16 +134,19 @@ initExpandedState()
             <Transition name="sidebar-text">
               <ChevronRight
                 v-if="!isCollapsed"
-                :size="14"
+                :size="13"
                 class="sidebar-chevron"
                 :class="{ 'sidebar-chevron--open': isExpanded(item.key) }"
               />
             </Transition>
           </button>
 
-          <!-- Children submenu -->
-          <Transition name="submenu">
-            <div v-if="isExpanded(item.key) && !isCollapsed" class="sidebar-submenu">
+          <!-- ✅ CSS Grid accordion — NO layout reflow, silky smooth -->
+          <div
+            class="sidebar-submenu-grid"
+            :class="{ 'sidebar-submenu-grid--open': isExpanded(item.key) && !isCollapsed }"
+          >
+            <div class="sidebar-submenu-inner">
               <router-link
                 v-for="child in item.children"
                 :key="child.key"
@@ -126,14 +159,12 @@ initExpandedState()
                   :class="{ 'sidebar-subitem--active': childActive }"
                   @click="() => { handleItemClick(child); navigate() }"
                 >
-                  <span class="sidebar-subitem-dot">
-                    <span class="dot" :class="{ 'dot--active': childActive }" />
-                  </span>
+                  <span class="sidebar-subitem-num">{{ getChildNumber(child) }}</span>
                   <span class="sidebar-item-label">{{ child.title }}</span>
                 </button>
               </router-link>
             </div>
-          </Transition>
+          </div>
         </template>
 
         <!-- Leaf item (no children) -->
@@ -153,10 +184,11 @@ initExpandedState()
             :title="isCollapsed ? item.title : undefined"
           >
             <span class="sidebar-item-icon">
-              <component :is="item.icon" v-if="item.icon" :size="18" />
+              <component :is="item.icon" v-if="item.icon" :size="17" />
             </span>
             <Transition name="sidebar-text">
               <span v-if="!isCollapsed" class="sidebar-item-label">
+                <span class="sidebar-item-num">{{ getParentNumber(item) }}</span>
                 {{ item.title }}
                 <span v-if="item.badge" class="sidebar-badge">{{ item.badge }}</span>
               </span>
@@ -196,17 +228,16 @@ initExpandedState()
 }
 
 .sidebar-group-spacer {
-  height: 8px;
+  height: 4px;
 }
 
 /* ─── Menu Item ─── */
 .sidebar-item {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  height: 42px;
+  gap: 8px;
+  padding: 0 10px;
+  height: 38px;
   border-radius: 6px;
   margin: 1px 8px;
   width: calc(100% - 16px);
@@ -214,12 +245,14 @@ initExpandedState()
   border: none;
   background: transparent;
   color: var(--sidebar-foreground);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   text-align: left;
+  /* Only transition bg/color — NOT height — avoids reflow */
   transition: background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-item:hover {
@@ -228,8 +261,9 @@ initExpandedState()
 }
 
 .sidebar-item--active {
-  background: color-mix(in srgb, var(--sidebar-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--sidebar-primary) 15%, transparent);
   color: var(--sidebar-primary);
+  font-weight: 600;
 }
 
 .sidebar-item--active .sidebar-item-icon {
@@ -237,7 +271,7 @@ initExpandedState()
 }
 
 .sidebar-item--collapsed {
-  width: 42px;
+  width: 38px;
   margin: 1px auto;
   padding: 0;
   justify-content: center;
@@ -247,10 +281,18 @@ initExpandedState()
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   flex-shrink: 0;
   color: inherit;
+}
+
+.sidebar-item-num {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sidebar-muted-foreground);
+  flex-shrink: 0;
+  min-width: 16px;
 }
 
 .sidebar-item-label {
@@ -259,7 +301,7 @@ initExpandedState()
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sidebar-badge {
@@ -276,38 +318,65 @@ initExpandedState()
 .sidebar-chevron {
   flex-shrink: 0;
   color: var(--sidebar-muted-foreground);
-  transition: transform 0.25s ease;
+  /* Only rotate, no layout effect */
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .sidebar-chevron--open {
   transform: rotate(90deg);
 }
 
-/* ─── Submenu ─── */
-.sidebar-submenu {
+/* ─────────────────────────────────────────────────────
+   ✅ CSS Grid Accordion — smooth, zero layout reflow
+   Uses grid-template-rows: 0fr ↔ 1fr
+   This avoids height recalculation on every frame
+   ───────────────────────────────────────────────────── */
+.sidebar-submenu-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Use opacity for fade since grid handles the height */
   overflow: hidden;
-  padding: 2px 0;
 }
 
+.sidebar-submenu-grid--open {
+  grid-template-rows: 1fr;
+}
+
+/* Inner wrapper must have overflow:hidden for the grid trick to work */
+.sidebar-submenu-inner {
+  overflow: hidden;
+  /* Subtle fade: items fade in when grid opens */
+  transition: opacity 0.18s ease;
+  opacity: 0;
+}
+
+.sidebar-submenu-grid--open .sidebar-submenu-inner {
+  opacity: 1;
+}
+
+/* ─── Subitem ─── */
 .sidebar-subitem {
   width: calc(100% - 16px);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px 0 36px;
-  height: 36px;
+  padding: 0 10px 0 32px;
+  height: 34px;
   border-radius: 6px;
   margin: 1px 8px;
   cursor: pointer;
   border: none;
   background: transparent;
-  color: color-mix(in srgb, var(--sidebar-foreground) 70%, transparent);
-  font-size: 13px;
+  color: color-mix(in srgb, var(--sidebar-foreground) 65%, transparent);
+  font-size: 12.5px;
   font-weight: 400;
   text-align: left;
   transition: background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-subitem:hover {
@@ -317,58 +386,29 @@ initExpandedState()
 
 .sidebar-subitem--active {
   color: var(--sidebar-primary);
+  font-weight: 500;
+  background: color-mix(in srgb, var(--sidebar-primary) 8%, transparent);
 }
 
-.sidebar-subitem-dot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
+.sidebar-subitem-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sidebar-muted-foreground);
   flex-shrink: 0;
+  min-width: 22px;
 }
 
-.dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--sidebar-muted-foreground);
-  transition: all 0.15s ease;
+.sidebar-subitem--active .sidebar-subitem-num {
+  color: var(--sidebar-primary);
 }
 
-.dot--active {
-  width: 6px;
-  height: 6px;
-  background: var(--sidebar-primary);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--sidebar-primary) 60%, transparent);
-}
-
-/* ─── Animations ─── */
+/* ─── Sidebar text transitions (collapse/expand sidebar itself) ─── */
 .sidebar-text-enter-active,
 .sidebar-text-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
 }
 .sidebar-text-enter-from,
 .sidebar-text-leave-to {
   opacity: 0;
-}
-
-.submenu-enter-active {
-  animation: submenu-open 0.22s ease-out;
-}
-.submenu-leave-active {
-  animation: submenu-open 0.18s ease-in reverse;
-}
-
-@keyframes submenu-open {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 500px;
-  }
 }
 </style>

@@ -7,7 +7,7 @@ import { loginSchema } from '@/modules/auth/schemas'
 import { useLoginMutation } from '@/modules/auth/queries/auth.query'
 import { useAuthStore } from '@/modules/auth/stores/auth.store'
 import { toast } from 'vue-sonner'
-import { User, Lock, Eye, EyeOff, Loader2, Sparkles } from 'lucide-vue-next'
+import { Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -36,7 +36,6 @@ const onSubmit = handleSubmit(async (values) => {
       toast.success(`Welcome back, ${payload.user?.username || values.username}!`)
       router.push('/')
     } else {
-      // In case the API returns something unexpected
       throw new Error('Invalid authentication response')
     }
   } catch (err) {
@@ -48,7 +47,6 @@ const onSubmit = handleSubmit(async (values) => {
       message?: string
     }
 
-    // Check if network error (API server is offline)
     const isNetworkError =
       !error.response || error.code === 'ERR_NETWORK' || error.message === 'Network Error'
 
@@ -69,7 +67,6 @@ const onSubmit = handleSubmit(async (values) => {
 const handleDemoLogin = () => {
   apiError.value = ''
 
-  // Set mock token and user details in the Pinia store
   const mockPayload = {
     access_token: 'mock-jwt-token-xyz-123456',
     token_type: 'bearer',
@@ -77,7 +74,7 @@ const handleDemoLogin = () => {
     user: {
       id: 1,
       username: 'Administrator',
-      email: 'admin@learn-fe.dev',
+      email: 'admin@hrm-system.dev',
       role: 'administrator',
       is_active: true,
       created_at: new Date().toISOString(),
@@ -88,135 +85,94 @@ const handleDemoLogin = () => {
   }
 
   authStore.setSession(mockPayload)
-  toast.success('Logged in successfully (Demo Mode)')
+  toast.success('Đăng nhập thành công (Demo Mode)')
   router.push('/')
 }
 </script>
 
 <template>
-  <form @submit.prevent="onSubmit" class="space-y-5">
+  <form @submit.prevent="onSubmit" class="login-form">
     <!-- Server/API Error Alert -->
     <div
       v-if="apiError"
-      class="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs leading-relaxed animate-shake"
+      class="login-error"
     >
       {{ apiError }}
     </div>
 
-    <!-- Username/Email Field -->
-    <div class="space-y-2">
-      <label
-        for="username"
-        class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block"
-      >
-        Username
-      </label>
-      <div class="relative">
-        <div
-          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground"
-        >
-          <User class="h-4 w-4" />
-        </div>
-        <input
-          id="username"
-          v-model="username"
-          v-bind="usernameAttrs"
-          type="text"
-          placeholder="Enter username"
-          :class="[
-            'block w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-accent/25 border focus:outline-none focus:ring-1 transition-all',
-            errors?.username
-              ? 'border-destructive focus:ring-destructive focus:border-destructive bg-destructive/5'
-              : 'border-border focus:ring-primary focus:border-primary',
-          ]"
-          :disabled="isSubmitting"
-        />
-      </div>
-      <p v-if="errors?.username" class="text-[11px] text-destructive font-medium">
-        {{ errors?.username }}
-      </p>
+    <!-- Tài khoản -->
+    <div class="lf-field">
+      <label for="username" class="lf-label">Tài khoản</label>
+      <input
+        id="username"
+        v-model="username"
+        v-bind="usernameAttrs"
+        type="text"
+        placeholder="Nhập tài khoản"
+        class="lf-input"
+        :class="{ 'lf-input--error': errors?.username }"
+        :disabled="isSubmitting"
+      />
+      <p v-if="errors?.username" class="lf-error-msg">{{ errors?.username }}</p>
     </div>
 
-    <!-- Password Field -->
-    <div class="space-y-2">
-      <div class="flex justify-between items-center">
-        <label
-          for="password"
-          class="text-xs font-semibold text-muted-foreground uppercase tracking-wider block"
-        >
-          Password
-        </label>
-        <a href="#" class="text-xs font-medium text-primary hover:underline transition-colors">
-          Forgot?
-        </a>
-      </div>
-      <div class="relative">
-        <div
-          class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground"
-        >
-          <Lock class="h-4 w-4" />
-        </div>
+    <!-- Mật khẩu -->
+    <div class="lf-field">
+      <label for="password" class="lf-label">Mật khẩu</label>
+      <div class="lf-input-wrap">
         <input
           id="password"
           v-model="password"
           v-bind="passwordAttrs"
           :type="showPassword ? 'text' : 'password'"
           placeholder="••••••••"
-          :class="[
-            'block w-full pl-10 pr-10 py-3 text-sm rounded-xl bg-accent/25 border focus:outline-none focus:ring-1 transition-all',
-            errors?.password
-              ? 'border-destructive focus:ring-destructive focus:border-destructive bg-destructive/5'
-              : 'border-border focus:ring-primary focus:border-primary',
-          ]"
+          class="lf-input lf-input--pw"
+          :class="{ 'lf-input--error': errors?.password }"
           :disabled="isSubmitting"
         />
         <button
           type="button"
+          class="lf-eye-btn"
           @click="showPassword = !showPassword"
-          class="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+          tabindex="-1"
         >
-          <EyeOff v-if="showPassword" class="h-4 w-4" />
-          <Eye v-else class="h-4 w-4" />
+          <EyeOff v-if="showPassword" :size="16" />
+          <Eye v-else :size="16" />
         </button>
       </div>
-      <p v-if="errors?.password" class="text-[11px] text-destructive font-medium">
-        {{ errors?.password }}
-      </p>
+      <p v-if="errors?.password" class="lf-error-msg">{{ errors?.password }}</p>
     </div>
 
-    <!-- Remember Me Checkbox -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <input
-          id="remember-me"
-          type="checkbox"
-          class="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 accent-primary"
-        />
-        <label for="remember-me" class="text-xs text-muted-foreground font-medium cursor-pointer">
-          Remember me
-        </label>
-      </div>
+    <!-- Remember Me + Forgot -->
+    <div class="lf-remember-row">
+      <label class="lf-checkbox-label">
+        <input type="checkbox" class="lf-checkbox" />
+        <span>Ghi nhớ tài khoản</span>
+      </label>
+      <a href="#" class="lf-forgot">Quên mật khẩu?</a>
     </div>
 
-    <!-- Submit Buttons -->
-    <div class="space-y-3 pt-2">
+    <!-- Submit -->
+    <div class="lf-actions">
       <button
         type="submit"
         :disabled="isSubmitting"
-        class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-primary/10"
+        class="lf-btn-submit"
       >
-        <Loader2 v-if="isSubmitting" class="h-4 w-4 animate-spin" />
-        <span v-else>Sign In</span>
+        <Loader2 v-if="isSubmitting" :size="16" class="lf-spinner" />
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Đăng nhập</span>
       </button>
 
-      <!-- Quick Login / Demo Mode Button -->
+      <!-- Demo Mode -->
       <button
         type="button"
         @click="handleDemoLogin"
         :disabled="isSubmitting"
-        class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-accent hover:bg-accent/80 text-accent-foreground font-semibold text-sm border border-border/80 active:scale-[0.98] transition-all cursor-pointer shadow-sm group"
+        class="lf-btn-demo"
       >
-        <Sparkles class="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
         <span>Quick Login (Demo Mode)</span>
       </button>
     </div>
@@ -224,19 +180,201 @@ const handleDemoLogin = () => {
 </template>
 
 <style scoped>
-.animate-shake {
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Error alert */
+.login-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 13px;
+  line-height: 1.5;
   animation: shake 0.4s ease-in-out;
 }
+
+/* Field */
+.lf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lf-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.lf-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13.5px;
+  color: #111827;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.lf-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+}
+
+.lf-input--error {
+  border-color: #ef4444;
+}
+.lf-input--error:focus {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+.lf-input-wrap {
+  position: relative;
+}
+
+.lf-input--pw {
+  padding-right: 42px;
+}
+
+.lf-eye-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.lf-eye-btn:hover {
+  color: #374151;
+}
+
+.lf-error-msg {
+  font-size: 11.5px;
+  color: #ef4444;
+  margin: 0;
+}
+
+/* Remember row */
+.lf-remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -4px;
+}
+
+.lf-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.lf-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: #16a34a;
+  cursor: pointer;
+}
+
+.lf-forgot {
+  font-size: 12.5px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.lf-forgot:hover {
+  color: #16a34a;
+}
+
+/* Actions */
+.lf-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.lf-btn-submit {
+  width: 100%;
+  height: 42px;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.lf-btn-submit:hover {
+  background: #111111;
+}
+
+.lf-btn-submit:active {
+  transform: scale(0.99);
+}
+
+.lf-btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.lf-spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+.lf-btn-demo {
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.lf-btn-demo:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
 @keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-4px);
-  }
-  75% {
-    transform: translateX(4px);
-  }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

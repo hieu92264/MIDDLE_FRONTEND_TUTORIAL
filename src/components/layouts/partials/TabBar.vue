@@ -115,36 +115,47 @@ watch(() => tabsStore.activeKey, async () => {
       @mouseleave="onMouseUp"
     >
       <TransitionGroup name="tab-slide" tag="div" class="tab-list">
-        <div
-          v-for="tab in tabsStore.tabs"
-          :key="tab.key"
-          class="tab-item"
-          :class="{
-            'tab-item--active': tab.key === tabsStore.activeKey,
-            'tab-item--affix': tab.affix,
-          }"
-          @click="navigateToTab(tab)"
-          @contextmenu="showContextMenu($event, tab)"
-        >
-          <!-- Active indicator dot -->
-          <span v-if="tab.key === tabsStore.activeKey" class="tab-dot" />
+        <template v-for="(tab, index) in tabsStore.tabs" :key="tab.key">
+          <!-- Divider giữa các tab -->
+          <div
+            v-if="index > 0"
+            class="tab-separator"
+            :class="{
+              'tab-separator--hidden':
+                tab.key === tabsStore.activeKey ||
+                tabsStore.tabs[index - 1]?.key === tabsStore.activeKey,
+            }"
+          />
 
-          <!-- Tab title -->
-          <span class="tab-title">{{ tab.title }}</span>
-
-          <!-- Affix pin icon -->
-          <Pin v-if="tab.affix" :size="10" class="tab-pin-icon" />
-
-          <!-- Close button -->
-          <button
-            v-if="!tab.affix"
-            class="tab-close"
-            @click.stop="closeTab(tab.key)"
-            :title="`Close ${tab.title}`"
+          <div
+            class="tab-item"
+            :class="{
+              'tab-item--active': tab.key === tabsStore.activeKey,
+              'tab-item--affix': tab.affix,
+            }"
+            @click="navigateToTab(tab)"
+            @contextmenu="showContextMenu($event, tab)"
           >
-            <X :size="11" />
-          </button>
-        </div>
+            <!-- Active indicator dot -->
+            <span v-if="tab.key === tabsStore.activeKey" class="tab-dot" />
+
+            <!-- Tab title -->
+            <span class="tab-title">{{ tab.title }}</span>
+
+            <!-- Affix pin icon -->
+            <Pin v-if="tab.affix" :size="10" class="tab-pin-icon" />
+
+            <!-- Close button -->
+            <button
+              v-if="!tab.affix"
+              class="tab-close"
+              @click.stop="closeTab(tab.key)"
+              :title="`Close ${tab.title}`"
+            >
+              <X :size="11" />
+            </button>
+          </div>
+        </template>
       </TransitionGroup>
     </div>
   </div>
@@ -218,11 +229,26 @@ watch(() => tabsStore.activeKey, async () => {
 
 .tab-list {
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  align-items: center;
   height: 100%;
-  padding: 5px 8px;
-  gap: 4px;
+  padding: 0 8px;
+  gap: 0;
+}
+
+/* ─── Separator dọc giữa các tab ─── */
+.tab-separator {
+  width: 1px;
+  height: 14px;
+  background: var(--tab-bar-border, var(--border));
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+  opacity: 1;
+  margin: 0 2px;
+}
+
+/* Ẩn separator khi tab kề bên đang active (tránh line đứt gãy trông lạ) */
+.tab-separator--hidden {
+  opacity: 0;
 }
 
 /* ─── Tab Item ─── */
@@ -231,7 +257,7 @@ watch(() => tabsStore.activeKey, async () => {
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  height: 28px;
+  height: 26px;
   border-radius: 5px;
   cursor: pointer;
   white-space: nowrap;
@@ -243,23 +269,26 @@ watch(() => tabsStore.activeKey, async () => {
   border: 1px solid transparent;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   position: relative;
+  margin: 5px 0;
 }
 
 .tab-item:hover {
   background: var(--tab-hover-bg, var(--accent));
   color: var(--foreground);
+  border-color: var(--border);
 }
 
 .tab-item--active {
   background: var(--tab-active-bg);
   color: var(--tab-active-color);
   border-color: var(--tab-active-border);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 
 /* ─── Active dot indicator ─── */
 .tab-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--tab-active-color, var(--primary));
   flex-shrink: 0;

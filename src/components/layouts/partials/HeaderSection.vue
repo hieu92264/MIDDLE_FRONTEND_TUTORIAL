@@ -200,10 +200,10 @@ const toggleFullscreen = () => {
         <Search :size="14" class="header-search-icon" />
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Tìm kiếm ..."
           class="header-search-input"
         />
-        <span class="header-search-kbd">Ctrl K</span>
+        <span class="header-search-kbd">ctrl K</span>
       </div>
 
       <!-- Theme Toggle -->

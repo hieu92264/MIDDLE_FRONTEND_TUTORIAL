@@ -56,6 +56,7 @@ const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'create'): void
   (e: 'export'): void
+  (e: 'resetColumns'): void
 }>()
 
 // ─── Helpers (định nghĩa trước khi dùng) ──────────────────────────────────────
@@ -394,12 +395,40 @@ const paddingBottom = computed(() => {
   const lastVRow = virtualRows.value[virtualRows.value.length - 1]
   return totalVirtualHeight.value - (lastVRow?.end ?? 0)
 })
+// ─── [OPT-7] Per-column filter helpers ───────────────────────────────────────
+/**
+ * Lấy giá trị filter hiện tại của một column (string).
+ */
+const getColumnFilterValue = (columnId: string): string => {
+  const val = columnFilters.value.find((f) => f.id === columnId)?.value
+  return typeof val === 'string' ? val : ''
+}
+
+/**
+ * Set filter cho một column cụ thể.
+ */
+const setColumnFilterValue = (columnId: string, value: string) => {
+  const col = table.getColumn(columnId)
+  if (col) col.setFilterValue(value || undefined)
+}
+
+/**
+ * Reset toàn bộ column sizing về size mặc định (từ columnDef.size).
+ * Gọi table.resetColumnSizing() để xóa mọi override.
+ */
+const resetColumnSizes = () => {
+  table.resetColumnSizing()
+  emit('resetColumns')
+}
+
+// Expose resetColumnSizes để toolbar có thể gọi qua slot
+defineExpose({ resetColumnSizes })
 </script>
 
 <template>
   <div class="space-y-4">
     <!-- Toolbar Slot -->
-    <slot name="toolbar" :table="table" />
+    <slot name="toolbar" :table="table" :reset-column-sizes="resetColumnSizes" />
 
     <div
       class="rounded-md border flex flex-col bg-background text-foreground"
@@ -409,13 +438,6 @@ const paddingBottom = computed(() => {
         overflow: props.layout?.height || props.layout?.maxHeight ? 'hidden' : undefined,
       }"
     >
-      <!--
-        [OPT-2] Bind CSS Custom Properties một lần tại đây.
-        Tất cả <col> trong colgroup dùng var(--col-{id}-size) → width tự động cập nhật
-        khi CSS var thay đổi mà KHÔNG cần Vue re-render.
-
-        ref="scrollContainerRef" → dùng cho useColumnResize và useVirtualizer.
-      -->
       <div
         ref="scrollContainerRef"
         class="min-h-0 flex-1 overflow-auto"
@@ -426,12 +448,6 @@ const paddingBottom = computed(() => {
           :class="{ 'w-max': props.layout?.responsive || props.advanced?.columnResizing }"
           :table-style="tableStyle"
         >
-          <!--
-            [OPT-1] <colgroup> định nghĩa width cho toàn bộ cột chỉ một lần.
-            Với table-layout: fixed, tất cả cells trong cột kế thừa width này.
-            → Không cần min-width/width/max-width trên từng <td>.
-            → Khi CSS var thay đổi (do drag resize), browser chỉ reflow layout 1 lần.
-          -->
           <colgroup v-if="props.advanced?.columnResizing">
             <col
               v-for="header in table.getFlatHeaders()"
@@ -440,13 +456,14 @@ const paddingBottom = computed(() => {
             />
           </colgroup>
 
-          <!-- ── Header ── -->
+          <!-- ── Header: 1 thead chứa cả row tên cột + row filter ── -->
           <TableHeader
             :class="[
               props.layout?.stickyHeader ? 'sticky top-0 z-40' : '',
               'bg-muted',
             ]"
           >
+            <!-- Row 1: Tên cột -->
             <TableRow
               v-for="headerGroup in table.getHeaderGroups()"
               :key="headerGroup.id"
@@ -463,9 +480,7 @@ const paddingBottom = computed(() => {
                 :class="[
                   header.column.columnDef.meta?.headerClass,
                   headerDensityClass,
-                  props.layout?.stickyHeader
-                    ? 'sticky top-0 z-40 bg-muted shadow-[0_1px_0_0_var(--border)]'
-                    : '',
+                  'bg-muted',
                   header.column.getCanResize() ? 'relative select-none overflow-visible' : '',
                   props.layout?.bordered ? 'border-r border-border/60 last:border-r-0' : '',
                 ]"
@@ -476,16 +491,7 @@ const paddingBottom = computed(() => {
                   :render="header.column.columnDef.header"
                   :props="{ ...header.getContext() }"
                 />
-
-                <!--
-                  [OPT-5] Resize Handle — wide transparent hit zone + narrow visual bar.
-                  Outer div: w-4 (16px) transparent, cursor-col-resize trên toàn bộ 16px.
-                    - Dịch sang phải -8px để căn giữa trên đường border cột
-                    - z-30 để hover zone không bị cắt bởi column bên phải
-                  Inner div: w-px (2px) visual indicator, centered trong hit zone.
-                    - Transition smooth khi hover/active
-                    - Scale lên w-1 (4px) khi hover hoặc đang resize
-                -->
+                <!-- [OPT-5] Resize Handle -->
                 <div
                   v-if="header.column.getCanResize() && props.advanced?.columnResizing"
                   class="group absolute inset-y-0 right-0 z-30 flex w-4 translate-x-1/2
@@ -502,17 +508,54 @@ const paddingBottom = computed(() => {
                       )
                   "
                 >
-                  <!-- Visual indicator: thin bar, expands on hover/resize -->
                   <div
                     class="w-px rounded-full bg-border/60 transition-all duration-150
                            group-hover:w-0.5 group-hover:bg-primary/70"
-                    :class="{
-                      '!w-0.5 !bg-primary': resizingColumnId === header.column.id,
-                    }"
+                    :class="{ '!w-0.5 !bg-primary': resizingColumnId === header.column.id }"
                   />
                 </div>
               </TableHead>
             </TableRow>
+
+            <!-- Row 2: Filter inputs — trong cùng thead → dính liền với row tên cột khi sticky -->
+            <template v-if="props.filtering?.columnFilters">
+              <TableRow
+                v-for="headerGroup in table.getHeaderGroups()"
+                :key="'f-' + headerGroup.id"
+                class="border-b border-border/40 hover:bg-transparent"
+              >
+                <TableHead
+                  v-for="header in headerGroup.headers"
+                  :key="'fi-' + header.id"
+                  class="p-1 h-8 bg-muted"
+                  :style="pinnedHeaderStyles.get(header.id)"
+                  :class="props.layout?.bordered ? 'border-r border-border/60 last:border-r-0' : ''"
+                >
+                  <!-- select / actions: không có filter -->
+                  <template v-if="header.id === 'select' || header.id === 'actions'" />
+                  <!-- cột có thể filter -->
+                  <template v-else-if="header.column.getCanFilter()">
+                    <div class="col-filter-wrap">
+                      <input
+                        :value="getColumnFilterValue(header.column.id)"
+                        type="text"
+                        placeholder="Tìm trong cột..."
+                        class="col-filter-input"
+                        @input="setColumnFilterValue(header.column.id, ($event.target as HTMLInputElement).value)"
+                      />
+                      <button
+                        v-if="getColumnFilterValue(header.column.id)"
+                        class="col-filter-clear"
+                        @click="setColumnFilterValue(header.column.id, '')"
+                        title="Xóa bộ lọc"
+                      >✕</button>
+                    </div>
+                  </template>
+                  <!-- cột không filter được: để trống -->
+                  <template v-else><div class="h-6" /></template>
+                </TableHead>
+              </TableRow>
+            </template>
           </TableHeader>
 
           <!-- ── Body ── -->
@@ -563,3 +606,61 @@ const paddingBottom = computed(() => {
     <slot name="pagination" :table="table" />
   </div>
 </template>
+
+<style scoped>
+/* ─── Per-column filter inputs ─── */
+.col-filter-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.col-filter-input {
+  width: 100%;
+  height: 24px;
+  padding: 0 24px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 11.5px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.col-filter-input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.col-filter-input:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 15%, transparent);
+}
+
+.col-filter-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: var(--muted-foreground);
+  color: var(--background);
+  border-radius: 50%;
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.col-filter-clear:hover {
+  opacity: 1;
+}
+</style>

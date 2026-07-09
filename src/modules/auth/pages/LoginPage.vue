@@ -3,109 +3,213 @@ import LoginForm from '../components/LoginForm.vue'
 </script>
 
 <template>
-  <div
-    class="min-h-screen w-full relative flex items-center justify-center bg-background/95 transition-colors duration-500 overflow-hidden px-4 font-sans"
-  >
-    <!-- Premium Ambient Glow Spheres in Background -->
-    <div
-      class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[100px] pointer-events-none animate-pulse-slow"
-    ></div>
-    <div
-      class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-accent-foreground/5 blur-[120px] pointer-events-none animate-pulse-slow-reverse"
-    ></div>
+  <div class="login-page">
+    <!-- Back button top-left -->
+    <button class="login-back-btn" @click="$router.back()" title="Quay lại">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
 
-    <!-- Fine grid pattern overlay -->
-    <div
-      class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none"
-    ></div>
+    <!-- Settings icon top-right -->
+    <button class="login-settings-btn" title="Cài đặt">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
 
-    <!-- Login Card Container -->
-    <div class="w-full max-w-md relative z-10">
-      <!-- Top Branding Indicator -->
-      <div class="text-center mb-8">
-        <div
-          class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 mb-4 animate-bounce-slow"
-        >
-          <span class="font-bold text-2xl">A</span>
+    <!-- Main Content -->
+    <div class="login-container">
+      <!-- Title -->
+      <div class="login-header">
+        <h1 class="login-title">Đăng nhập vào hệ thống</h1>
+        <p class="login-subtitle">
+          Nhập tài khoản, mật khẩu và chọn bộ phận đang công tác để truy cập vào<br />hệ thống
+        </p>
+      </div>
+
+      <!-- Steps indicator -->
+      <div class="login-steps">
+        <div class="login-step login-step--active">
+          <div class="login-step-circle login-step-circle--active">1</div>
+          <span class="login-step-label login-step-label--active">Xác thực tài khoản</span>
         </div>
-        <h1
-          class="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent"
-        >
-          Welcome back
-        </h1>
-        <p class="text-xs text-muted-foreground mt-2">
-          Enter your details below to sign in to your dashboard
-        </p>
+        <div class="login-step-line" />
+        <div class="login-step">
+          <div class="login-step-circle">2</div>
+          <span class="login-step-label">Chọn đơn vị công tác</span>
+        </div>
       </div>
 
-      <!-- Glassmorphic Form Card -->
-      <div
-        class="bg-card/45 backdrop-blur-xl border border-border/80 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/5 dark:shadow-white/5 relative overflow-hidden"
-      >
-        <!-- Subtle linear line highlight on top of card -->
-        <div
-          class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent"
-        ></div>
-
+      <!-- Login Form Card -->
+      <div class="login-card">
         <LoginForm />
-      </div>
-
-      <!-- Bottom Helper Actions -->
-      <div class="text-center mt-6">
-        <p class="text-xs text-muted-foreground">
-          Don't have an account?
-          <router-link
-            to="/register"
-            class="font-semibold text-primary hover:underline transition-colors ml-1"
-          >
-            Sign up
-          </router-link>
-        </p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.animate-pulse-slow {
-  animation: pulse-slow 8s ease-in-out infinite;
-}
-.animate-pulse-slow-reverse {
-  animation: pulse-slow-reverse 10s ease-in-out infinite;
-}
-.animate-bounce-slow {
-  animation: bounce-slow 4s ease-in-out infinite;
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: 'Inter', 'Be Vietnam Pro', sans-serif;
 }
 
-@keyframes pulse-slow {
-  0%,
-  100% {
-    transform: scale(1) translate(0, 0);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.1) translate(20px, -20px);
-    opacity: 0.9;
-  }
+/* Back button */
+.login-back-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-@keyframes pulse-slow-reverse {
-  0%,
-  100% {
-    transform: scale(1) translate(0, 0);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.08) translate(-15px, 15px);
-    opacity: 0.8;
-  }
+.login-back-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
 }
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
+
+/* Settings button */
+.login-settings-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.login-settings-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* Container */
+.login-container {
+  width: 100%;
+  max-width: 480px;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Steps */
+.login-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 380px;
+  padding: 12px 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.login-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.login-step-line {
+  width: 40px;
+  height: 1px;
+  background: #d1d5db;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.login-step-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.login-step-circle--active {
+  border-color: #16a34a;
+  background: #fff;
+  color: #16a34a;
+}
+
+.login-step-label {
+  font-size: 12.5px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.login-step-label--active {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* Card */
+.login-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 20px 16px;
   }
 }
 </style>

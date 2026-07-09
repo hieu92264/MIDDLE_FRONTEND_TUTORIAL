@@ -229,6 +229,9 @@ const tableOptions = {
     enabled: true,
     mode: 'multiple',
   },
+  filtering: {
+    columnFilters: true,   // ✔ Bật hàng filter trong từng cột
+  },
   layout: {
     bordered: true,
     density: 'default',
@@ -252,18 +255,27 @@ const tableOptions = {
   <div class="flex h-full flex-1 flex-col space-y-6 p-8">
     <div class="flex items-center justify-between space-y-2">
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">Users Management</h2>
+        <h2 class="text-2xl font-bold tracking-tight">Quản lý người dùng</h2>
         <p class="text-muted-foreground">
-          120 users across roles, teams, locations, and account statuses.
+          Danh sách 120 người dùng theo vai trò, nhóm, địa điểm và trạng thái tài khoản.
         </p>
       </div>
     </div>
 
     <DataTable :data="data" :columns="columns" v-bind="tableOptions">
-      <template #toolbar="{ table }">
+      <template #toolbar="{ table, resetColumnSizes }">
         <DataTableToolbar
           :table="table"
-          :options="{ createButton: 'Add User', export: true }"
+          :reset-column-sizes="resetColumnSizes"
+          :options="{
+            search: true,
+            refresh: true,
+            export: true,
+            columnVisibility: true,
+            resetColumns: true,
+            createButton: 'Thêm người dùng',
+          }"
+          @refresh="console.log('Refresh')"
           @create="console.log('Create new user')"
           @export="console.log('Export data')"
         >
@@ -271,23 +283,18 @@ const tableOptions = {
             <DataTableFacetedFilter
               v-if="table.getColumn('role')"
               :column="table.getColumn('role')"
-              title="Role"
+              title="Vai trò"
               :options="roleOptions"
             />
             <DataTableFacetedFilter
               v-if="table.getColumn('status')"
               :column="table.getColumn('status')"
-              title="Status"
+              title="Trạng thái"
               :options="statusOptions"
             />
           </template>
-
           <template #actions>
             <DataTableBulkActions :table="table" :actions="bulkActions" />
-          </template>
-
-          <template #view-options>
-            <DataTableColumnVisibility :table="table" />
           </template>
         </DataTableToolbar>
       </template>

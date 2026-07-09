@@ -22,6 +22,7 @@ export interface ToolbarOptions {
   export?: boolean
   createButton?: boolean | string
   customActions?: boolean
+  resetColumns?: boolean  // Bật button reset kích thước cột
 }
 
 export interface SortingOptions {

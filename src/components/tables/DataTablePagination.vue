@@ -1,17 +1,12 @@
 <script setup lang="ts" generic="TData">
 import type { Table } from '@tanstack/vue-table'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-vue-next'
+import { ref, watch, computed } from 'vue'
 
 interface DataTablePaginationProps {
   table: Table<TData>
@@ -19,7 +14,7 @@ interface DataTablePaginationProps {
 }
 
 const props = withDefaults(defineProps<DataTablePaginationProps>(), {
-  pageSizeOptions: () => [10, 20, 30, 40, 50],
+  pageSizeOptions: () => [10, 20, 30, 50, 100],
 })
 
 const pageInput = ref('1')
@@ -32,103 +27,269 @@ watch(
   { immediate: true },
 )
 
-const setPageSize = (value: unknown) => {
-  if (value === null || value === undefined) return
-
-  props.table.setPageSize(Number(value))
+const setPageSize = (e: Event) => {
+  const val = Number((e.target as HTMLSelectElement).value)
+  if (val) props.table.setPageSize(val)
 }
 
 const jumpToPage = () => {
   const pageCount = props.table.getPageCount()
-  const parsedPage = Number.parseInt(pageInput.value, 10)
-  const targetPage = Number.isNaN(parsedPage) ? 1 : parsedPage
-  const clampedPage = Math.min(Math.max(targetPage, 1), Math.max(pageCount, 1))
-
-  props.table.setPageIndex(clampedPage - 1)
-  pageInput.value = String(clampedPage)
+  const parsed = parseInt(pageInput.value, 10)
+  const target = isNaN(parsed) ? 1 : parsed
+  const clamped = Math.min(Math.max(target, 1), Math.max(pageCount, 1))
+  props.table.setPageIndex(clamped - 1)
+  pageInput.value = String(clamped)
 }
+
+const selectedRows = computed(() => props.table.getFilteredSelectedRowModel().rows.length)
+const totalRows = computed(() => props.table.getFilteredRowModel().rows.length)
+const currentPage = computed(() => props.table.getState().pagination.pageIndex + 1)
+const pageCount = computed(() => props.table.getPageCount())
+const pageSize = computed(() => props.table.getState().pagination.pageSize)
+
+// Page buttons: show up to 5 pages around current
+const pageButtons = computed(() => {
+  const total = pageCount.value
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const cur = currentPage.value
+  const pages: (number | '...')[] = []
+  pages.push(1)
+  if (cur > 3) pages.push('...')
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) {
+    pages.push(p)
+  }
+  if (cur < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
+})
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 px-2 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex-1 text-sm text-muted-foreground">
-      <span>
-        {{ table.getFilteredSelectedRowModel().rows.length }} of
-        {{ table.getFilteredRowModel().rows.length }} row(s) selected.
+  <div class="dt-pagination">
+    <!-- Left: selection info -->
+    <div class="dt-pagination__info">
+      <span v-if="selectedRows > 0" class="dt-pagination__selected">
+        Đã chọn {{ selectedRows }}/{{ totalRows }} dòng
+      </span>
+      <span v-else class="dt-pagination__total">
+        Tổng <strong>{{ totalRows }}</strong> dòng
       </span>
     </div>
-    <div class="flex flex-wrap items-center gap-3 lg:gap-6">
-      <div class="flex items-center space-x-2">
-        <p class="text-sm font-medium">Rows per page</p>
-        <Select
-          :model-value="`${table.getState().pagination.pageSize}`"
-          @update:model-value="setPageSize"
+
+    <!-- Right: controls -->
+    <div class="dt-pagination__controls">
+
+      <!-- Rows per page -->
+      <div class="dt-pagination__size">
+        <span class="dt-pagination__size-label">Số hàng mỗi trang</span>
+        <select
+          class="dt-pagination__size-select"
+          :value="pageSize"
+          @change="setPageSize"
         >
-          <SelectTrigger class="h-8 w-[70px]">
-            <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
-          </SelectTrigger>
-          <SelectContent side="top">
-            <SelectItem v-for="pageSize in pageSizeOptions" :key="pageSize" :value="`${pageSize}`">
-              {{ pageSize }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+          <option
+            v-for="size in pageSizeOptions"
+            :key="size"
+            :value="size"
+          >
+            {{ size }}
+          </option>
+        </select>
       </div>
-      <div class="flex items-center space-x-2">
-        <p class="text-sm font-medium">Go to</p>
-        <Input
-          v-model="pageInput"
-          type="number"
-          min="1"
-          :max="table.getPageCount()"
-          class="h-8 w-16"
-          @keyup.enter="jumpToPage"
-          @blur="jumpToPage"
-        />
-        <Button variant="outline" class="h-8 px-3" @click="jumpToPage">Go</Button>
-      </div>
-      <div class="flex w-[100px] items-center justify-center text-sm font-medium">
-        Page {{ table.getState().pagination.pageIndex + 1 }} of
-        {{ table.getPageCount() }}
-      </div>
-      <div class="flex items-center space-x-2">
-        <Button
-          variant="outline"
-          class="hidden h-8 w-8 p-0 lg:flex"
+
+      <!-- Page indicator -->
+      <span class="dt-pagination__page-label">
+        Trang {{ currentPage }}/{{ pageCount }}
+      </span>
+
+      <!-- Page buttons -->
+      <div class="dt-pagination__pages">
+        <!-- First -->
+        <button
+          class="dt-page-btn"
           :disabled="!table.getCanPreviousPage()"
           @click="table.setPageIndex(0)"
+          title="Trang đầu"
         >
-          <span class="sr-only">Go to first page</span>
-          <ChevronsLeft class="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          class="h-8 w-8 p-0"
+          <ChevronsLeft :size="14" />
+        </button>
+
+        <!-- Prev -->
+        <button
+          class="dt-page-btn"
           :disabled="!table.getCanPreviousPage()"
           @click="table.previousPage()"
+          title="Trang trước"
         >
-          <span class="sr-only">Go to previous page</span>
-          <ChevronLeft class="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          class="h-8 w-8 p-0"
+          <ChevronLeft :size="14" />
+        </button>
+
+        <!-- Page number buttons -->
+        <template v-for="(page, idx) in pageButtons" :key="idx">
+          <span v-if="page === '...'" class="dt-page-ellipsis">…</span>
+          <button
+            v-else
+            class="dt-page-btn dt-page-btn--num"
+            :class="{ 'dt-page-btn--active': page === currentPage }"
+            @click="table.setPageIndex((page as number) - 1)"
+          >
+            {{ page }}
+          </button>
+        </template>
+
+        <!-- Next -->
+        <button
+          class="dt-page-btn"
           :disabled="!table.getCanNextPage()"
           @click="table.nextPage()"
+          title="Trang sau"
         >
-          <span class="sr-only">Go to next page</span>
-          <ChevronRight class="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          class="hidden h-8 w-8 p-0 lg:flex"
+          <ChevronRight :size="14" />
+        </button>
+
+        <!-- Last -->
+        <button
+          class="dt-page-btn"
           :disabled="!table.getCanNextPage()"
           @click="table.setPageIndex(table.getPageCount() - 1)"
+          title="Trang cuối"
         >
-          <span class="sr-only">Go to last page</span>
-          <ChevronsRight class="h-4 w-4" />
-        </Button>
+          <ChevronsRight :size="14" />
+        </button>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.dt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px 4px;
+  flex-wrap: wrap;
+}
+
+/* ── Info text ── */
+.dt-pagination__info {
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.dt-pagination__selected {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.dt-pagination__total strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* ── Right controls ── */
+.dt-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Page size selector ── */
+.dt-pagination__size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-pagination__size-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.dt-pagination__size-select {
+  height: 28px;
+  padding: 0 22px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238c8c8c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  transition: border-color 0.15s;
+}
+
+.dt-pagination__size-select:hover {
+  border-color: var(--ring);
+}
+
+/* ── Page label ── */
+.dt-pagination__page-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+/* ── Page button group ── */
+.dt-pagination__pages {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Individual page button ── */
+.dt-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.dt-page-btn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--border) 60%, var(--foreground));
+}
+
+.dt-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dt-page-btn--active {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  font-weight: 700;
+}
+
+.dt-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+</style>
