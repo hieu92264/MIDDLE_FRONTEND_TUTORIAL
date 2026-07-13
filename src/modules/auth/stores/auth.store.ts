@@ -1,10 +1,10 @@
-import type { AuthPayload, UserInterface } from '@/modules/auth/types/auth.type'
+import type { AuthPayload, AuthUserInterface } from '@/modules/auth/types/auth.type'
 import { defineStore } from 'pinia'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: null as string | null,
-    user: null as UserInterface | null,
+    user: null as AuthUserInterface | null,
   }),
 
   actions: {

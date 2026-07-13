@@ -1,5 +1,5 @@
 import type { LoginSchema, RegisterSchema } from '@/modules/auth/schemas'
-import type { AuthPayload, UserInterface } from '@/modules/auth/types/auth.type'
+import type { AuthPayload, AuthUserInterface } from '@/modules/auth/types/auth.type'
 import { httpService } from '@/services/http.service'
 
 export const AUTH_URL = {
@@ -17,7 +17,7 @@ export class AuthService {
   }
 
   static async me() {
-    const metadata = await httpService.get<UserInterface>(AUTH_URL.ME)
+    const metadata = await httpService.get<AuthUserInterface>(AUTH_URL.ME)
     return metadata
   }
 
@@ -28,7 +28,7 @@ export class AuthService {
 
   static async register(data: RegisterSchema) {
     const metadata = await httpService.post<
-      Omit<UserInterface, 'user_name_created' | 'user_name_updated'>
+      Omit<AuthUserInterface, 'user_name_created' | 'user_name_updated'>
     >(AUTH_URL.REGISTER, data)
     return metadata
   }
