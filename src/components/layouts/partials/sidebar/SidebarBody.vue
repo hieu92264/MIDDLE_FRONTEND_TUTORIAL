@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { useTabsStore } from '@/stores/tabs.store'
-import { sidebarData, type SidebarItem, type SidebarGroup } from './sidebar-data'
+import { sidebarData, type SidebarItem } from './sidebar-data'
 import { ChevronRight } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -99,10 +99,7 @@ initExpandedState()
   <nav class="sidebar-nav">
     <template v-for="group in sidebarData" :key="group.groupKey">
       <!-- Group Label -->
-      <div
-        v-if="group.groupLabel && !isCollapsed"
-        class="sidebar-group-label"
-      >
+      <div v-if="group.groupLabel && !isCollapsed" class="sidebar-group-label">
         {{ group.groupLabel }}
       </div>
       <div v-if="group.groupLabel && !isCollapsed" class="sidebar-group-divider" />
@@ -126,7 +123,9 @@ initExpandedState()
             </span>
             <Transition name="sidebar-text">
               <span v-if="!isCollapsed" class="sidebar-item-label">
-                <span v-if="!isCollapsed" class="sidebar-item-num">{{ getParentNumber(item) }}</span>
+                <span v-if="!isCollapsed" class="sidebar-item-num">{{
+                  getParentNumber(item)
+                }}</span>
                 {{ item.title }}
                 <span v-if="item.badge" class="sidebar-badge">{{ item.badge }}</span>
               </span>
@@ -157,7 +156,12 @@ initExpandedState()
                 <button
                   class="sidebar-subitem"
                   :class="{ 'sidebar-subitem--active': childActive }"
-                  @click="() => { handleItemClick(child); navigate() }"
+                  @click="
+                    () => {
+                      handleItemClick(child)
+                      navigate()
+                    }
+                  "
                 >
                   <span class="sidebar-subitem-num">{{ getChildNumber(child) }}</span>
                   <span class="sidebar-item-label">{{ child.title }}</span>
@@ -180,7 +184,12 @@ initExpandedState()
               'sidebar-item--active': itemActive,
               'sidebar-item--collapsed': isCollapsed,
             }"
-            @click="() => { handleItemClick(item); navigate() }"
+            @click="
+              () => {
+                handleItemClick(item)
+                navigate()
+              }
+            "
             :title="isCollapsed ? item.title : undefined"
           >
             <span class="sidebar-item-icon">
@@ -249,7 +258,9 @@ initExpandedState()
   font-weight: 500;
   text-align: left;
   /* Only transition bg/color — NOT height — avoids reflow */
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;
@@ -373,7 +384,9 @@ initExpandedState()
   font-size: 12.5px;
   font-weight: 400;
   text-align: left;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
   flex-shrink: 0;

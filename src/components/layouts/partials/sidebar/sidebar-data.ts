@@ -149,10 +149,10 @@ export const sidebarData: SidebarGroup[] = [
     groupLabel: 'Quản trị',
     items: [
       {
-        key: 'iam',
-        title: 'Quản lý truy cập',
-        path: '/iam',
-        icon: ShieldCheck,
+        key: 'users',
+        title: 'Quản lý người dùng',
+        path: '/users',
+        icon: Users,
       },
       {
         key: 'monitor',
