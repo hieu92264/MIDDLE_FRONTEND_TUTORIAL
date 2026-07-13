@@ -36,7 +36,7 @@ export const useTabsStore = defineStore('tabs', {
       const idx = this.tabs.findIndex((t) => t.key === key)
       if (idx === -1) return
       const tab = this.tabs[idx]
-      if (tab.affix) return // can't close pinned tabs
+      if (tab && tab.affix) return // can't close pinned tabs
 
       // If closing active tab, activate neighbor
       if (this.activeKey === key) {

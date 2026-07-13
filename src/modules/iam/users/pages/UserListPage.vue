@@ -8,7 +8,6 @@ import {
   DataTable,
   DataTableBulkActions,
   DataTableColumnHeader,
-  DataTableColumnVisibility,
   DataTableFacetedFilter,
   DataTablePagination,
   DataTableRowActions,
@@ -230,7 +229,7 @@ const tableOptions = {
     mode: 'multiple',
   },
   filtering: {
-    columnFilters: true,   // ✔ Bật hàng filter trong từng cột
+    columnFilters: true, // ✔ Bật hàng filter trong từng cột
   },
   layout: {
     bordered: true,
